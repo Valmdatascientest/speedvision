@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:name=".SpeedVisionApplication" android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@drawable/ic_speedvision" android:label="SpeedVision" android:supportsRtl="true" android:theme="@style/Theme.SpeedVision">
+    <application android:name=".SpeedVisionApplication" android:allowBackup="false" android:fullBackupContent="@xml/backup_rules" android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@drawable/ic_speedvision" android:label="SpeedVision" android:supportsRtl="true" android:theme="@style/Theme.SpeedVision">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
