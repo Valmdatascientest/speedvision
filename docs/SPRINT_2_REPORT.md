@@ -36,7 +36,7 @@ Les preuves sont dans `app/build/outputs/androidTest-results/connected/debug/`, 
 
 La première CI distante du commit `98adc98` a échoué pendant l'installation Android : le paquet historique `tools` n'existe plus. Le workflow demande maintenant explicitement `platform-tools`, avec caméra émulée activée. Les tests Kotlin d'inférence ont aussi été corrigés puis exécutés localement.
 
-Le statut de la nouvelle CI distante doit être vérifié sur le commit de livraison. La CI générique signale trois tests ONNX ignorés faute de poids; le job manuel `local_model_validation` peut exiger les poids et ne publie aucun APK les contenant.
+La [CI distante du commit `71651b9`](https://github.com/Valmdatascientest/speedvision/actions/runs/35872377853) est **verte** : jobs `build` et `device-tests` réussis le 23 septembre 2026. Le job optionnel `model-validation` n'a pas été exécuté. La CI générique exclut les poids et ignore les trois tests qui les exigent; les dix tests Android avec modèles obligatoires ont été exécutés localement comme indiqué ci-dessus. Le job manuel `local_model_validation` peut exiger les poids et ne publie aucun APK les contenant.
 
 ## Réserves qui empêchent de fermer tous les critères terrain du sprint
 
