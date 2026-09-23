@@ -1,4 +1,6 @@
-# Algorithme métrologique proposé (non implémenté aux Sprints 0–1)
+# Algorithme métrologique proposé
+
+Le suivi temporel est implémenté au Sprint 3; géométrie métrique et estimation de vitesse ci-dessous restent planifiées. Voir [architecture du tracker](../ARCHITECTURE.md#suivi-sprint-3).
 
 ## Grandeur mesurée et signe
 

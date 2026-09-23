@@ -42,12 +42,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import fr.speedvision.domain.PlaybackState
+import fr.speedvision.domain.TrackStatus
 import fr.speedvision.presentation.PreviewState
 import fr.speedvision.presentation.PreviewViewModel
 import java.util.Locale
@@ -125,7 +127,7 @@ fun PreviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("SpeedVision", style = MaterialTheme.typography.headlineLarge)
-            Text("LAB / 02     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
+            Text("LAB / 03     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -137,6 +139,35 @@ fun PreviewScreen(
                         val scale = min(size.width / image.width, size.height / image.height)
                         val dx = (size.width - image.width * scale) / 2
                         val dy = (size.height - image.height * scale) / 2
+                        val labelPaint =
+                            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                                color = android.graphics.Color.WHITE
+                                textSize = 14.dp.toPx()
+                                setShadowLayer(3f, 0f, 0f, android.graphics.Color.BLACK)
+                            }
+                        state.tracking?.tracks?.forEach { track ->
+                            val box = track.box
+                            if (track.status == TrackStatus.LOST) {
+                                drawRect(
+                                    Color.Gray,
+                                    Offset(dx + box.left * scale, dy + box.top * scale),
+                                    Size(box.width * scale, box.height * scale),
+                                    style = Stroke(1.dp.toPx()),
+                                )
+                            }
+                            val status =
+                                when (track.status) {
+                                    TrackStatus.TENTATIVE -> "provisoire"
+                                    TrackStatus.CONFIRMED -> "confirmée"
+                                    TrackStatus.LOST -> "perdue"
+                                }
+                            drawContext.canvas.nativeCanvas.drawText(
+                                "#${track.id} $status",
+                                (dx + box.left * scale).coerceIn(0f, size.width),
+                                (dy + box.top * scale - 4.dp.toPx()).coerceIn(labelPaint.textSize, size.height),
+                                labelPaint,
+                            )
+                        }
                         state.detections?.let { result ->
                             val boxes =
                                 result.vehicles.map { it.box to Color(0xFF7FE0C3) } +
@@ -173,13 +204,23 @@ fun PreviewScreen(
             state.detectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             state.detections?.let {
                 Text("${it.vehicles.size} véhicule(s) · ${it.plates.size} plaque(s) candidate(s)")
-                Text("Vert : véhicule · Jaune : plaque. Détections expérimentales, sans suivi.", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Vert : véhicule · Jaune : plaque. Identités expérimentales : provisoire, confirmée ou perdue.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            state.tracking?.let { tracking ->
+                Text(
+                    "Suivi : ${tracking.tracks.count { it.status == TrackStatus.CONFIRMED }} confirmée(s) · " +
+                        "${tracking.tracks.count { it.status == TrackStatus.LOST }} perdue(s)",
+                )
+                Text("${tracking.plates.size} plaque(s) rattachée(s) à une piste confirmée")
             }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
                     Text("Distance : —     ·     Confiance : —")
-                    Text("Mesure indisponible : suivi, calibration et estimation de vitesse prévus aux prochains sprints.")
+                    Text("Mesure indisponible : calibration et estimation de vitesse prévues aux prochains sprints.")
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {

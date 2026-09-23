@@ -1,3 +1,7 @@
+# Validation Sprint 3
+
+Le tracker ajoute 11 tests JVM déterministes, dont croisements, perte/expiration, resets, association des plaques et comparaison Hungarian à une recherche exhaustive. Les tests Android incluent le suivi des détections ONNX réelles sur une image répétée et les compteurs Compose. Voir [rapport Sprint 3](docs/SPRINT_3_REPORT.md) pour les résultats et limites. Les commandes `scripts/check.sh` et `connectedDebugAndroidTest` restent identiques.
+
 # Tests et validation — état Sprint 2
 
 `./scripts/check.sh` exécute tests Python de métriques, tests JVM, formatage, lint et compilation des APK. Les variables du [README](README.md) permettent de lancer les tests instrumentés sur Android. Pour exiger les poids réels :

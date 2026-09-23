@@ -6,6 +6,8 @@ import android.graphics.Color
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import fr.speedvision.domain.LatencyWindow
+import fr.speedvision.domain.TrackStatus
+import fr.speedvision.domain.VehicleTracker
 import fr.speedvision.domain.VideoFrame
 import fr.speedvision.presentation.uprightBitmap
 import fr.speedvision.vision.DetectionEngine
@@ -44,6 +46,8 @@ class DetectionEngineTest {
             try {
                 engine.detect(image) // Warmup; not counted as a benchmark sample.
                 val latencies = LatencyWindow(8)
+                val tracker = VehicleTracker()
+                var busId: Long? = null
                 repeat(8) {
                     val result = engine.detect(image)
                     assertTrue(result.vehicles.any { it.classId == 5 })
@@ -56,6 +60,10 @@ class DetectionEngineTest {
                                 p.detection.box.bottom <= image.height
                         },
                     )
+                    val tracking = tracker.update(it * 100_000L, image.width, image.height, result)
+                    val bus = tracking.tracks.single { track -> track.classId == 5 && track.detectionIndex != null }
+                    if (busId == null) busId = bus.id else assertEquals(busId, bus.id)
+                    if (it >= 2) assertEquals(TrackStatus.CONFIRMED, bus.status)
                     latencies.add(result.totalMillis)
                 }
                 Log.i(

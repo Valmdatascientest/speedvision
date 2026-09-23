@@ -1,6 +1,6 @@
 # Backlog Agile
 
-Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md.
+Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté, preuves dans docs/SPRINT_3_REPORT.md.
 
 Definition of Done commune : critères satisfaits, implémentation réelle ou limite déclarée, tests pertinents verts, formatage/lint/build propres, revue de confidentialité, docs mises à jour et aucun résultat de précision inventé. Une story avec validation matérielle non réalisée reste à valider.
 
@@ -59,6 +59,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 - Definition of Done : DoD commune + preuves des critères/tests ci-dessus dans le rapport de sprint.
 
 ## S3-01 · Epic 4 — Tracking
+
+- État : Kalman/IoU/Hungarian implémentés, identité et pertes testées sur séquences synthétiques. Validation des changements d’identité sur vidéos indépendantes encore ouverte.
 
 - Description : Conserver une identité temporelle.
 - Sprint : 3.

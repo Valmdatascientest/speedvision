@@ -12,6 +12,8 @@ import fr.speedvision.di.VideoSourceFactory
 import fr.speedvision.domain.DetectionResult
 import fr.speedvision.domain.LatencyWindow
 import fr.speedvision.domain.PlaybackState
+import fr.speedvision.domain.TrackingResult
+import fr.speedvision.domain.VehicleTracker
 import fr.speedvision.domain.VideoFrame
 import fr.speedvision.domain.VideoSource
 import fr.speedvision.vision.DetectionEngine
@@ -42,6 +44,7 @@ data class PreviewState(
     val detectionEnabled: Boolean = true,
     val detections: DetectionResult? = null,
     val detectionError: String? = null,
+    val tracking: TrackingResult? = null,
     val p50: Double = 0.0,
     val p95: Double = 0.0,
     val samples: Int = 0,
@@ -70,6 +73,15 @@ class PreviewViewModel
         private var framesJob: Job? = null
         private var statusJob: Job? = null
         private var run = 0L
+        private val tracker = VehicleTracker()
+        private var detectionEpoch = 0L
+        private var frameGeometry: Pair<fr.speedvision.domain.FrameGeometry, Int>? = null
+
+        private fun resetTracking() {
+            detectionEpoch++
+            tracker.reset()
+            frameGeometry = null
+        }
 
         fun select(uri: Uri) = attach(factory.create(uri, viewModelScope), false)
 
@@ -103,6 +115,10 @@ class PreviewViewModel
             statusJob =
                 viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
                     selectedSource.status.collect { status ->
+                        if (status.state == PlaybackState.ERROR) {
+                            resetTracking()
+                            mutableState.update { it.copy(tracking = null, detections = null) }
+                        }
                         mutableState.update { it.copy(state = status.state, error = status.message) }
                     }
                 }
@@ -114,6 +130,7 @@ class PreviewViewModel
                     var latency = LatencyWindow()
                     selectedSource.frames().conflate().collect { frame ->
                         val frameRun = run
+                        val frameEpoch = detectionEpoch
                         if (frameRun != currentRun) {
                             currentRun = frameRun
                             firstNanos = 0
@@ -130,7 +147,7 @@ class PreviewViewModel
                                 bitmap.recycle()
                                 throw cancelled
                             } catch (_: Exception) {
-                                if (frameRun == run) {
+                                if (frameRun == run && frameEpoch == detectionEpoch) {
                                     mutableState.update {
                                         it.copy(detectionError = "Modèles absents ou incompatibles dans cette installation.")
                                     }
@@ -139,6 +156,11 @@ class PreviewViewModel
                         }
                         val active = selectedSource.status.value.state in setOf(PlaybackState.PLAYING, PlaybackState.ENDED)
                         if (source === selectedSource && frameRun == run && active) {
+                            if (frameEpoch != detectionEpoch) result = null
+                            val geometry = frame.geometry to frame.rotationDegrees
+                            if (frameGeometry != geometry) tracker.reset()
+                            frameGeometry = geometry
+                            val tracking = result?.let { tracker.update(frame.presentationTimeUs, bitmap.width, bitmap.height, it) }
                             val now = SystemClock.elapsedRealtimeNanos()
                             val count = mutableState.value.frameCount + 1
                             if (firstNanos == 0L) firstNanos = now
@@ -153,6 +175,7 @@ class PreviewViewModel
                                     ptsUs = frame.presentationTimeUs,
                                     fps = if (duration > 0) (count - 1) / duration else 0.0,
                                     detections = if (it.detectionEnabled) result else null,
+                                    tracking = if (it.detectionEnabled) tracking else null,
                                     p50 = latency.percentile(0.5),
                                     p95 = latency.percentile(0.95),
                                     samples = latency.count,
@@ -170,6 +193,7 @@ class PreviewViewModel
         fun start() {
             if (mutableState.value.state == PlaybackState.PLAYING) return
             run++
+            resetTracking()
             mutableState.update {
                 it.copy(
                     frameCount = 0,
@@ -178,6 +202,7 @@ class PreviewViewModel
                     image = null,
                     error = null,
                     detections = null,
+                    tracking = null,
                     detectionError = null,
                     samples = 0,
                     p50 = 0.0,
@@ -191,8 +216,9 @@ class PreviewViewModel
 
         fun stop() {
             run++
+            resetTracking()
             source?.stop()
-            mutableState.update { it.copy(detections = null) }
+            mutableState.update { it.copy(detections = null, tracking = null) }
         }
 
         /** Activity destruction must not leave an old camera LifecycleOwner in the retained ViewModel. */
@@ -211,7 +237,8 @@ class PreviewViewModel
         }
 
         fun detection(enabled: Boolean) {
-            mutableState.update { it.copy(detectionEnabled = enabled, detectionError = null, detections = null) }
+            resetTracking()
+            mutableState.update { it.copy(detectionEnabled = enabled, detectionError = null, detections = null, tracking = null) }
         }
 
         override fun onCleared() {

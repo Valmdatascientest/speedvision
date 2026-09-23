@@ -1,4 +1,4 @@
-# Architecture SpeedVision — Sprint 2
+# Architecture SpeedVision — Sprint 3
 
 ## Modules et responsabilités
 
@@ -14,13 +14,14 @@ app/                             Assemblage Android/Hilt
   VideoSource / VideoFrame        Contrat, pixels, PTS, origine, crop natif
   Detection / Letterbox           Coordonnées et inverse resize/padding
   YoloPostprocessor               Validation sortie, filtre classes, NMS
+  VehicleTracker                 Kalman, association IoU/Hungarian, identités
   LatencyWindow                  Statistiques bornées p50/p95
  models/                         Audit des poids et procédure de préparation
  scripts/                        Provisionnement vérifié, évaluation, checks
  testing/                        Protocoles et tests Python de métriques
 ```
 
-Hilt injecte les factories et un moteur propre au ViewModel. Le domaine ne dépend ni d'Android ni du runtime ML. Détection et tracking sont distincts : aucune identité temporelle n'est attribuée au Sprint 2; `vehicleIndex` est uniquement l'indice du parent dans une image.
+Hilt injecte les factories et un moteur propre au ViewModel. Le domaine ne dépend ni d'Android ni du runtime ML. Détection et tracking sont distincts : `vehicleIndex` reste l'indice du parent dans une image. `VehicleTracker` fournit des `trackId` temporels et rattache les plaques uniquement aux parents confirmés observés.
 
 ```mermaid
 flowchart LR
@@ -31,7 +32,8 @@ flowchart LR
   D --> R[4 ROI véhicule maximum]
   R --> P[YOLO11n plaques]
   P --> B[Retour aux coordonnées image]
-  B --> UI[Image et cadres du même instant]
+  B --> T[VehicleTracker : PTS, Kalman, Hungarian]
+  T --> UI[Image, cadres et identités du même instant]
 ```
 
 ## Géométrie et pixels
@@ -60,6 +62,16 @@ Les assets absents ou incompatibles donnent un état explicite; jamais une déte
 
 ## Suite planifiée
 
-Sprint 3 : tracker séparé, association et invalidation d'identité. Sprint 4 : calibration, profils physiques et PnP/DistanceEstimator. Sprint 5 : SpeedEstimator robuste et qualité. Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+Sprint 4 : calibration, profils physiques et PnP/DistanceEstimator. Sprint 5 : SpeedEstimator robuste et qualité. Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
 
 Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.
+
+## Suivi Sprint 3
+
+Tracker Kotlin pur, sérialisé sur le collecteur du ViewModel après acceptation de la génération courante. Quatre filtres Kalman indépendants position/vitesse portent centre X/Y et largeur/hauteur; le pas temporel vient des PTS en secondes. Association globale Hungarian sur coût 1−IoU, même classe et IoU ≥ 0,20, avec colonnes factices pour les pistes sans correspondance. Aucun code du dépôt SORT n'est copié.
+
+Confirmation après 3 observations consécutives. Une piste confirmée peut rester perdue ≤ 500 ms depuis sa dernière observation; elle n'a alors ni indice de détection ni plaque attachée. Une piste provisoire manquée est supprimée. Maximum 60 pistes; les plus anciennes perdues sont évincées en priorité si nécessaire. IDs croissants non réutilisés pendant la vie du tracker, même après reset; ils ne sont pas persistants entre lancements.
+
+STOP/START, source, détection, erreur source, crop/origine temporelle/rotation, dimensions, PTS dupliqués ou inversés et gap > 500 ms invalident les pistes. Une génération de détection empêche une inférence démarrée avant un changement de bouton de recréer des pistes. Les plaques ne sont pas prédites ni conservées : `TrackedPlate` indique le parent courant, pas une réidentification indépendante de la plaque. Aucune fenêtre de distance/vitesse n'existe encore.
+
+Les covariances et seuils sont expérimentaux, sans confiance probabiliste affichée. Occlusion longue, changement de classe et mouvement brusque peuvent créer une nouvelle identité. Deux objets identiques superposés restent ambigus sans apparence. Validation synthétique et intégration sur image répétée ne prouvent pas la stabilité terrain.
