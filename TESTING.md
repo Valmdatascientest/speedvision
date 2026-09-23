@@ -1,0 +1,40 @@
+# Tests et validation
+
+## Commandes
+
+Java 17 et SDK Android 35 requis. Pour l'environnement local préparé, `./scripts/check.sh` sélectionne le JDK et les caches locaux. Ailleurs, définir JAVA_HOME et sdk.dir dans local.properties (ou ANDROID_HOME).
+
+```sh
+./scripts/check.sh
+# Sur un appareil connecté/émulateur (voir variables locales ci-dessous)
+./gradlew :app:connectedDebugAndroidTest
+```
+
+Le script vérifie formatage, tests JVM domaine, tests JVM Android, lint et compilation des APK application/tests. Les tests instrumentés nécessitent un système Android et sont distincts de leur compilation. La CI comporte aussi un job émulateur API 35. Les tests du moteur géométrique/vitesse seront ajoutés avec ce moteur aux Sprints 4–5; aucune implémentation future n'est présentée comme testée.
+
+## Tests présents
+
+- FrameSampler : PTS irréguliers, négatifs, doublons, régression temporelle, restart, intervalle invalide.
+- Conversion YUV : niveaux noir/blanc, rouge, saturation.
+- Android : véritable MP4 H.264 décodé par MediaCodec, dimensions des pixels, monotonie PTS, fin et replay; fichier absent, arrêt idempotent, arrêt pendant lecture, double START et redémarrage.
+- Compose : aucun START sans sélection, aucune vitesse fabriquée.
+
+`app/src/androidTest/assets/sample.mp4` est une mire synthétique de 1 s générée avec FFmpeg (320 × 240, 15 fps). Elle vérifie l'ingestion, pas l'exactitude d'une vitesse. Génération reproductible :
+
+```sh
+ffmpeg -f lavfi -i 'testsrc2=size=320x240:rate=15' -t 1 -c:v libx264 -pix_fmt yuv420p -an -y app/src/androidTest/assets/sample.mp4
+```
+
+## Essais manuels Sprint 1
+
+Sélectionner un MP4 local H.264 SDR ≤ 1920 × 1920. Essayer portrait avec rotation, EOF/replay, STOP/START rapide, remplacement pendant lecture, fond/premier plan, rotation écran, annulation du sélecteur, fichier corrompu/non vidéo et fournisseur inaccessible. Vérifier absence de copie et de permission globale, aucune voix, aucune valeur de vitesse. Les codecs et strides dépendent du matériel : essais complémentaires sur au moins deux téléphones nécessaires avant de déclarer la compatibilité générale. HDR/4K exclus explicitement dans ce prototype.
+
+## Tests futurs de calcul
+
+Projection pinhole/PnP avec distances connues, distorsion, yaw/roulis et coins bruités. Estimation vitesse sur PTS irréguliers, gaps, bruit corrélé, outliers, accélération, changement de piste. Tests de confiance : mouvement ambigu/calibration absente imposent rejet, résultat périmé impose silence. Vérifier taux de faux résultats acceptés. Comparer Huber/Kalman/Savitzky–Golay/RANSAC par séquence entière.
+
+## Validation terrain
+
+Voir [protocole et manifeste](testing/README.md). Aucune séquence réelle avec vérité terrain n'a été fournie. Le dataset ne peut pas être honnêtement fabriqué : seule la fixture d'ingestion est synthétique. Aucun MAE terrain, FPS d'inférence ou résultat Meta n'est revendiqué.
+
+Les résultats de cette exécution sont consignés dans [docs/SPRINT_REPORT.md](docs/SPRINT_REPORT.md). Une CI configurée mais non déclenchée n'est pas une CI réussie.

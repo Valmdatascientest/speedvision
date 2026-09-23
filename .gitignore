@@ -1,0 +1,11 @@
+.gradle/
+**/build/
+.tools/
+local.properties
+.idea/
+*.iml
+.DS_Store
+*.csv
+!testing/**/*.csv
+
+.kotlin/
