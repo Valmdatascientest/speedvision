@@ -11,6 +11,10 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = {
+    "plate-example.jpg": (
+        "https://raw.githubusercontent.com/morsetechlab/yolov11-license-plate-detection/b1f410f7c2dbe518225238b36b137e679a921ce4/cli_inference_result.jpg",
+        "2ce245d89b9df86ceefb030121629c8b1e4ba4da1ca529bae8d245015b8612b2",
+    ),
     "yolo11n.pt": (
         "https://huggingface.co/Ultralytics/YOLO11/resolve/8b8ac7d1fae7468f85dbf89670dd66f41f485aab/yolo11n.pt",
         "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1",
@@ -87,6 +91,7 @@ def main():
     fixtures = ROOT / "app/src/androidTest/assets/detection"
     fixtures.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(image, fixtures / "bus.jpg")
+    shutil.copyfile(download("plate-example.jpg", cache), fixtures / "plate-example.jpg")
     print(json.dumps(manifest, indent=2))
     print("Prepared local assets. No repository license has been changed; no model has been published.")
 

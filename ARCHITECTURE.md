@@ -1,65 +1,65 @@
-# Architecture SpeedVision
+# Architecture SpeedVision — Sprint 2
 
-## Incrément actuel
-
-Deux modules Gradle suffisent pour isoler le domaine sans créer douze modules vides :
+## Modules et responsabilités
 
 ```text
-app/                         Android et assemblage Hilt
-  src/main/java/fr/speedvision/
-    data/                    VideoFileSource, conversion YUV pour aperçu
-    di/                      factory de source avec contexte application
-    presentation/            PreviewViewModel, état immuable
-    MainActivity.kt          Compose et cycle de vie
-  src/test/                  conversion pixels
-  src/androidTest/           vrai décodage, erreurs, interface
-  src/androidTest/assets/     vidéo synthétique de test sans plaque
- domain/                     Kotlin/JVM indépendant d'Android
-  src/main/kotlin/.../        VideoSource, VideoFrame, FrameSampler, AudioOutput
-  src/test/kotlin/.../        sélection temporelle
- docs/                       faisabilité et mathématiques
- testing/                    protocole/dataset
- scripts/                    vérification reproductible
- .github/workflows/           build, lint, formatage, tests, émulateur
+app/                             Assemblage Android/Hilt
+  camera/CameraXVideoSource       ImageAnalysis, permissions et lifecycle
+  data/VideoFileSource            MediaExtractor + MediaCodec, vrais PTS
+  vision/OnnxDetector             Prétraitement et session ONNX CPU
+  vision/DetectionEngine          Véhicules → ROIs bornées → plaques
+  presentation/PreviewViewModel   Coroutines, état, annulation, statistiques
+  MainActivity.kt                 Compose, source, cadres et diagnostics
+ domain/                         Kotlin/JVM sans Android
+  VideoSource / VideoFrame        Contrat, pixels, PTS, origine, crop natif
+  Detection / Letterbox           Coordonnées et inverse resize/padding
+  YoloPostprocessor               Validation sortie, filtre classes, NMS
+  LatencyWindow                  Statistiques bornées p50/p95
+ models/                         Audit des poids et procédure de préparation
+ scripts/                        Provisionnement vérifié, évaluation, checks
+ testing/                        Protocoles et tests Python de métriques
 ```
 
-Flux présent : sélection explicite URI → factory Hilt → MediaExtractor/MediaCodec sur IO → YUV_420_888 vers ARGB → Flow → ViewModel → Compose. Les images ont les PTS du décodeur, en microsecondes. L'aperçu est plafonné à 10 fps / 640 px, sans prétendre mesurer le débit du flux natif. La rotation est appliquée à l'affichage. Les couleurs de l'aperçu utilisent BT.601 limité; colorimétrie exacte et HDR exclus.
-
-Le Flow ne conserve pas les images et applique une contre-pression au consommateur. Un Mutex évite deux décodeurs simultanés d'une même source lors d'un STOP/START rapide. L'annulation ferme les ressources dans `finally`. Le changement de source annule les abonnements précédents. STOP garde la dernière image; START relit depuis le début. Le passage en arrière-plan arrête; aucun service en arrière-plan. Une recréation conserve le ViewModel mais ne relance pas automatiquement. Après mort du processus, sélection à refaire.
-
-## Architecture cible (Sprints 2–9, non implémentée)
+Hilt injecte les factories et un moteur propre au ViewModel. Le domaine ne dépend ni d'Android ni du runtime ML. Détection et tracking sont distincts : aucune identité temporelle n'est attribuée au Sprint 2; `vehicleIndex` est uniquement l'indice du parent dans une image.
 
 ```mermaid
 flowchart LR
-  V[VideoSource: fichier / CameraX / Meta] --> D[VehicleDetector]
-  D --> P[PlateDetector: bbox puis coins]
-  P --> T[PlateTracker: identifiant stable]
-  T --> G[DistanceEstimator: calibration / pose]
-  M[CameraMotionCompensator] --> G
-  G --> S[SpeedEstimator: fenêtre robuste]
-  S --> C[ConfidenceGate / invalidation]
-  C --> UI[ViewModel / Compose]
-  C --> A[AnnouncementPolicy / AudioOutput / TTS]
+  F[VideoFileSource] --> V[Frame native et horodatée]
+  C[CameraXVideoSource] --> V
+  V --> U[Crop + rotation pixels]
+  U --> D[YOLO11n véhicules]
+  D --> R[4 ROI véhicule maximum]
+  R --> P[YOLO11n plaques]
+  P --> B[Retour aux coordonnées image]
+  B --> UI[Image et cadres du même instant]
 ```
 
-Créer progressivement `vision/detection`, `vision/tracking`, `geometry`, `speed`, `camera`, `meta`, `speech`, `data/calibration`, `testing` lorsque leur sprint ajoute un comportement réel. Le domaine définit les contrats et résultats, les adaptateurs Android dépendent de lui. Les modèles/runtimes dépendent d'interfaces de détection, pas de l'UI. Hilt compose les implémentations. Pas de `MetaGlassesVideoSource` factice qui prétend fonctionner.
+## Géométrie et pixels
 
-Avant le Sprint 2, enrichir `VideoFrame` avec résolution native, crop, transformation vers coordonnées analysées, origine temporelle et compteur de frames ignorées. Garder les pixels haute résolution nécessaires aux plaques; le buffer actuel est exclusivement un aperçu. Les intrinsics se transforment avec le resize/crop/rotation exact. Ne pas appliquer directement une calibration native à l'aperçu.
+Le fichier conserve les pixels du crop natif, jusqu'à la limite d'entrée 1920 × 1920. CameraX demande 1280 × 720, mais la résolution effective dépend du matériel et est enregistrée. `FrameGeometry` conserve dimensions natives, origine du crop et origine temporelle. La rotation 0/90/180/270 est appliquée avant l'inférence. Les boîtes sont exprimées en pixels de cette image redressée.
 
-## Contrats futurs
+Chaque réseau reçoit une entrée RGB float32 NCHW 640 × 640, après resize conservant le ratio et padding 114. `Letterbox` conserve les dimensions redimensionnées entières et inverse exactement scale/padding; l'étage plaque ajoute l'origine ROI. Les limites sont clampées, NaN/Inf et géométries dégénérées rejetées. L'overlay utilise le même ajustement `Fit` que l'image : marges et échelle sont identiques.
 
-- `CameraCalibration(fx, fy, cx, cy, distortionCoefficients, imageWidth, imageHeight, sourceId, mode, version)`.
-- `DistanceEstimator` reçoit géométrie plaque, dimensions réelles configurées, calibration et pose; retourne profondeur, incertitude, score, raisons, PTS.
-- `SpeedEstimator` reçoit `(trackId, distance, sigma, PTS)` et retourne vitesse signée, intervalle si validé, nombre de points, score et raisons de rejet.
-- `CameraMotionCompensator` retourne rotation estimée, qualité, résidu de flot et limites d'observabilité; jamais une translation métrique inventée.
-- `SpeedResult(vehicleId, speedKmh, confidence, distanceMeters, timestamp)` complété par statut valide/rejeté et âge.
-- `AudioOutput` est séparé de la politique d'annonce : confiance/stabilité, délai minimal, delta de vitesse et expiration. Dire « vitesse relative de rapprochement ».
+Le futur moteur géométrique devra transformer K pour le crop/rotation exact et travailler sur la géométrie observée. Il ne peut pas réutiliser sans transformation une calibration native sur l'entrée 640 du réseau. Les cadres du détecteur ne sont pas des coins de plaque.
 
-Les erreurs source, absence de modèle, calibration invalide et tracking perdu sont des états normaux, pas des valeurs nulles remplacées par zéro. Changement de véhicule, perte prolongée ou discontinuité temporelle invalident toute la fenêtre vitesse et toute annonce en attente.
+## Temps, ressources et cycle de vie
 
-## Décisions
+Vidéo : sélection par PTS à 10 images/s maximum. Le compteur garde la séquence décodée avant échantillonnage. Caméra : timestamps `imageInfo.timestamp` en microsecondes, distincts d'une horloge média; `KEEP_ONLY_LATEST` et fermeture de tous les `ImageProxy`. Les sources n'enregistrent rien.
 
-1. Min SDK 28, compile/target 35, Java 17, Kotlin 2.1.10, AGP 8.9.1 : base versionnée pour cet incrément; revalider les exigences de publication et du SDK Meta ultérieurement.
-2. MediaCodec au lieu d'une extraction par temps demandé : les PTS sont ceux des frames réellement décodées ([référence Android](https://developer.android.com/reference/android/media/MediaCodec)).
-3. Lecture vidéo muette : TTS relève du Sprint 7; aucune permission audio inutile.
-4. Préférer mesurer les limites, puis optimiser. Aucun réseau, modèle ou SDK Meta embarqué à ce stade.
+`Flow.conflate()` conserve la dernière frame disponible pendant l'inférence. Pas de file illimitée; les écarts de séquence visibles sont comptés, sans prétendre compter les images perdues en amont du callback caméra. L'affichage attend le résultat correspondant à l'image traitée; un ancien résultat n'est pas superposé à une nouvelle image.
+
+Un compteur de session invalide le travail en cours sur STOP/START/remplacement. Les erreurs et les boîtes sont effacées aux transitions appropriées. Les appels ONNX natifs ne sont pas interrompus au milieu d'un opérateur : leur résultat est abandonné si la coroutine/session est annulée. Un Mutex sérialise exécution et fermeture des sessions; les tenseurs/résultats natifs sont fermés à chaque passage. Le ViewModel ferme les sessions à sa destruction.
+
+CameraX est lié au lifecycle de l'activité, utilise un executor unique et ne demande que CAMERA. Le passage en arrière-plan stoppe. La destruction détache la caméra, libère observer/executor et impose une nouvelle sélection, évitant de conserver une ancienne activité après rotation. Le lecteur de fichier peut conserver son ViewModel, sans redémarrage automatique.
+
+## Performance et qualité
+
+Détection CPU/2 threads, seuil 0,35, NMS 0,45 et 30 véhicules maximum. Au plus quatre ROI sont traitées par ordre de score; les omissions sont affichées. Conséquence assumée : une plaque sans véhicule détecté est manquée. Les durées incluent pré/post-traitement; le chargement initial des sessions est exclu de p50/p95. Fenêtre de 120 mesures, compteur visible. Le temps depuis décodage inclut attente et traitement, mais ne prétend pas mesurer exposition caméra → affichage.
+
+Les assets absents ou incompatibles donnent un état explicite; jamais une détection factice. Le script vérifie les poids amont, l'application vérifie les hashes des exports avec leur manifeste. Aucune confiance de vitesse n'est calculée.
+
+## Suite planifiée
+
+Sprint 3 : tracker séparé, association et invalidation d'identité. Sprint 4 : calibration, profils physiques et PnP/DistanceEstimator. Sprint 5 : SpeedEstimator robuste et qualité. Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+
+Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.

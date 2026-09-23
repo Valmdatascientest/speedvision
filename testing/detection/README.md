@@ -1,6 +1,6 @@
 # Validation détection
 
-Les tests de post-traitement utilisent des tenseurs et boîtes synthétiques : inversion du letterbox, offsets de ROI, portrait/paysage, NMS par classe, score invalide et mauvais schéma. Les tests Android exécutent les deux véritables réseaux sur une photo de référence et une image noire, ainsi que la rotation des pixels avant inférence.
+Les tests de post-traitement utilisent des tenseurs et boîtes synthétiques : inversion du letterbox, offsets de ROI, portrait/paysage, NMS par classe, score invalide et mauvais schéma. Les tests Android exécutent les deux véritables réseaux sur une photo de référence, un exemple annoté de l’auteur et une image noire, ainsi que la rotation des pixels avant inférence.
 
 Exécution obligatoire des modèles après provisionnement :
 
@@ -9,7 +9,7 @@ Exécution obligatoire des modèles après provisionnement :
 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.requireModels=true
 ```
 
-Sans poids, les deux tests de réseaux sont explicitement ignorés dans la suite générique; avec `requireModels=true`, leur absence est un échec. Le test caméra nécessite un émulateur muni d'une caméra arrière et une installation neuve sans autorisation caméra préaccordée. L'émulateur valide l'intégration, pas les performances du téléphone cible.
+Sans poids, les trois tests de réseaux sont explicitement ignorés dans la suite générique; avec `requireModels=true`, leur absence est un échec. Le test caméra nécessite un émulateur muni d'une caméra arrière et une installation neuve sans autorisation caméra préaccordée. L'émulateur valide l'intégration, pas les performances du téléphone cible.
 
 ## Rappel sur annotations indépendantes
 

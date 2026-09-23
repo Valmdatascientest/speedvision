@@ -21,7 +21,11 @@ class DetectionEngineTest {
     private val context = instrumentation.targetContext
 
     private fun requireModels() {
-        val available = context.assets.list("models")?.containsAll(listOf("vehicle.onnx", "plate.onnx")) == true
+        val available =
+            context.assets
+                .list("models")
+                ?.toList()
+                ?.containsAll(listOf("vehicle.onnx", "plate.onnx")) == true
         if (InstrumentationRegistry.getArguments().getString("requireModels") == "true") {
             assertTrue("Provision models before running the required model suite", available)
         } else {
@@ -30,7 +34,7 @@ class DetectionEngineTest {
     }
 
     @Test fun realVehicleAndPlateModelsRunAndReportTimings() =
-        runBlocking {
+        runBlocking<Unit> {
             requireModels()
             val image =
                 instrumentation.context.assets
@@ -47,7 +51,8 @@ class DetectionEngineTest {
                     assertTrue(result.plateMillis > 0)
                     assertTrue(
                         result.plates.all { p ->
-                            p.vehicleIndex in result.vehicles.indices && p.detection.box.right <= image.width &&
+                            p.vehicleIndex in result.vehicles.indices &&
+                                p.detection.box.right <= image.width &&
                                 p.detection.box.bottom <= image.height
                         },
                     )
@@ -89,4 +94,29 @@ class DetectionEngineTest {
             bitmap.recycle()
         }
     }
+
+    @Test fun positivePlateExampleMapsBackInsideVehicleRoi() =
+        runBlocking<Unit> {
+            requireModels()
+            // Author's already annotated demo: regression fixture only, NOT independent recall data.
+            val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+            val image =
+                instrumentation.context.assets.open("detection/plate-example.jpg").use {
+                    requireNotNull(BitmapFactory.decodeStream(it, null, options))
+                }
+            val engine = DetectionEngine(context)
+            try {
+                val result = engine.detect(image)
+                assertTrue("Expected a positive plate detection on author's demo", result.plates.isNotEmpty())
+                for (plate in result.plates) {
+                    val vehicle = result.vehicles[plate.vehicleIndex].box
+                    val box = plate.detection.box
+                    assertTrue(box.left >= vehicle.left - 1 && box.right <= vehicle.right + 1)
+                    assertTrue(box.top >= vehicle.top - 1 && box.bottom <= vehicle.bottom + 1)
+                }
+            } finally {
+                engine.close()
+                image.recycle()
+            }
+        }
 }

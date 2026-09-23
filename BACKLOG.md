@@ -1,6 +1,6 @@
 # Backlog Agile
 
-Priorité initiale : Sprint 0 puis Sprint 1. Les stories ultérieures restent planifiées.
+Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md.
 
 Definition of Done commune : critères satisfaits, implémentation réelle ou limite déclarée, tests pertinents verts, formatage/lint/build propres, revue de confidentialité, docs mises à jour et aucun résultat de précision inventé. Une story avec validation matérielle non réalisée reste à valider.
 
@@ -30,6 +30,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S2-01 · Epic 1 — Video ingestion
 
+- État : Implémenté et testé sur émulateur (permissions, flux, STOP/reprise). Rotation pixels testée; essais téléphones à compléter.
+
 - Description : Brancher CameraX pour développement.
 - Sprint : 2.
 - Critères d’acceptation : Lifecycle lié; permission au besoin; stratégie latest-frame; transformation documentée.
@@ -38,6 +40,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S2-02 · Epic 2 — Vehicle detection
 
+- État : Implémenté, modèle/version/hash audités, inférence et timing CPU testés. Rappel indépendant et comparaison CPU/GPU sur téléphone non validés.
+
 - Description : Détecter les véhicules sur téléphone.
 - Sprint : 2.
 - Critères d’acceptation : Poids préentraînés identifiés/licenciés; labels véhicules; mesures p50/p95 et rappel.
@@ -45,6 +49,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 - Definition of Done : DoD commune + preuves des critères/tests ci-dessus dans le rapport de sprint.
 
 ## S2-03 · Epic 3 — License plate detection
+
+- État : Implémenté et testé sur exemple positif/entrée négative. Corpus amont contaminé : validation indépendante des petites plaques et faux positifs encore requise.
 
 - Description : Localiser les plaques dans les véhicules.
 - Sprint : 2.

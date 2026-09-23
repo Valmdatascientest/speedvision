@@ -1,4 +1,19 @@
-# Tests et validation
+# Tests et validation — état Sprint 2
+
+`./scripts/check.sh` exécute tests Python de métriques, tests JVM, formatage, lint et compilation des APK. Les variables du [README](README.md) permettent de lancer les tests instrumentés sur Android. Pour exiger les poids réels :
+
+```sh
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.requireModels=true
+```
+
+Préparer les poids selon [models/README.md](models/README.md). Sans poids, trois tests ONNX sont explicitement ignorés; l'argument ci-dessus transforme leur absence en échec. Aucun mock de réseau n'est substitué. La CI générique compile un APK sans modèles; le job manuel de validation peut les préparer pour ses tests et ne publie que les rapports.
+
+Couverture Sprint 2 : letterbox portrait/paysage/ROI, sortie YOLO brute, classes, NMS, rejets numériques, fenêtre de percentiles; rotation pixels; inférence réelle véhicule/plaque sur exemples positifs et entrée noire; CameraX permission refusée, vraies images émulateur, arrêt/reprise. Voir [protocole détection](testing/detection/README.md). Les tests de lecture Sprint 1 sont conservés.
+
+La suite locale comprend 12 tests JVM, 10 tests instrumentés avec modèles et 3 tests Python de métriques. Voir le [rapport Sprint 2](docs/SPRINT_2_REPORT.md) pour résultats et limites. Les mesures de temps sur émulateur sont des smoke benchmarks; le rappel sur données indépendantes et la comparaison accélérateurs sur téléphone restent à réaliser.
+
+## Historique des essais de lecture et protocole vitesse
+
 
 ## Commandes
 
