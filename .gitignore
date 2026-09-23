@@ -9,3 +9,10 @@ local.properties
 !testing/**/*.csv
 
 .kotlin/
+
+app/src/main/assets/models/*.onnx
+app/src/androidTest/assets/detection/*
+!app/src/androidTest/assets/detection/.gitkeep
+app/src/main/assets/models/runtime.json
+
+__pycache__/

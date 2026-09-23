@@ -11,6 +11,17 @@ data class VideoFrame(
     val presentationTimeUs: Long,
     val rotationDegrees: Int,
     val decodedAtNanos: Long,
+    val geometry: FrameGeometry = FrameGeometry(width, height),
+    val sequenceNumber: Long = 0,
+)
+
+/** Frame pixels are the native crop before rotation, without resize. */
+data class FrameGeometry(
+    val nativeWidth: Int,
+    val nativeHeight: Int,
+    val cropLeft: Int = 0,
+    val cropTop: Int = 0,
+    val timestampOrigin: String = "media-pts",
 )
 
 enum class PlaybackState { READY, PLAYING, STOPPED, ENDED, ERROR }
@@ -29,6 +40,10 @@ interface VideoSource {
     fun stop()
 
     fun frames(): Flow<VideoFrame>
+
+    fun close() {
+        stop()
+    }
 }
 
 /** Future speech adapter. No implementation or speech in Sprint 1. */

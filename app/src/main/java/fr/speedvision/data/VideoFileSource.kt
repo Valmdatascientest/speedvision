@@ -9,6 +9,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
 import android.os.SystemClock
+import fr.speedvision.domain.FrameGeometry
 import fr.speedvision.domain.FrameSampler
 import fr.speedvision.domain.PlaybackState
 import fr.speedvision.domain.SourceStatus
@@ -28,7 +29,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.math.max
 
 /** Real MediaCodec decoder. No copies of selected files, no network or audio playback. */
 class VideoFileSource(
@@ -119,6 +119,7 @@ class VideoFileSource(
             decoder.start()
             val info = MediaCodec.BufferInfo()
             val sampler = FrameSampler()
+            var sequence = 0L
             var inputEnded = false
             var firstPtsUs: Long? = null
             var startedNanos = 0L
@@ -143,6 +144,7 @@ class VideoFileSource(
                 val index = decoder.dequeueOutputBuffer(info, 10_000)
                 if (index >= 0) {
                     lastProgressNanos = SystemClock.elapsedRealtimeNanos()
+                    sequence++
                     try {
                         if (info.size > 0 &&
                             info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0 &&
@@ -159,7 +161,7 @@ class VideoFileSource(
                             if (waitUs > 0) delay(waitUs / 1000)
                             val frame =
                                 requireNotNull(decoder.getOutputImage(index)).use {
-                                    it.toFrame(info.presentationTimeUs, rotation)
+                                    it.toFrame(info.presentationTimeUs, rotation).copy(sequenceNumber = sequence)
                                 }
                             output.emit(frame)
                             lastProgressNanos = SystemClock.elapsedRealtimeNanos()
@@ -187,7 +189,7 @@ class VideoFileSource(
     ): VideoFrame {
         require(format == ImageFormat.YUV_420_888)
         val crop = cropRect
-        val step = max(1, (max(crop.width(), crop.height()) + 639) / 640)
+        val step = 1
         val width = crop.width() / step
         val height = crop.height() / step
         val pixels = IntArray(width * height)
@@ -209,6 +211,14 @@ class VideoFileSource(
                 pixels[y * width + x] = yuvToArgb(sample(0, sx, sy), sample(1, sx / 2, sy / 2), sample(2, sx / 2, sy / 2))
             }
         }
-        return VideoFrame(pixels, width, height, ptsUs, rotation, SystemClock.elapsedRealtimeNanos())
+        return VideoFrame(
+            pixels,
+            width,
+            height,
+            ptsUs,
+            rotation,
+            SystemClock.elapsedRealtimeNanos(),
+            FrameGeometry(this.width, this.height, crop.left, crop.top),
+        )
     }
 }

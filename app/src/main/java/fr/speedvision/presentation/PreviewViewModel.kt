@@ -3,16 +3,26 @@ package fr.speedvision.presentation
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
+import android.os.SystemClock
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.speedvision.di.VideoSourceFactory
+import fr.speedvision.domain.DetectionResult
+import fr.speedvision.domain.LatencyWindow
 import fr.speedvision.domain.PlaybackState
+import fr.speedvision.domain.VideoFrame
 import fr.speedvision.domain.VideoSource
+import fr.speedvision.vision.DetectionEngine
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,6 +30,8 @@ import javax.inject.Inject
 
 data class PreviewState(
     val selected: Boolean = false,
+    val sourceLabel: String = "VIDÉO LOCALE",
+    val camera: Boolean = false,
     val state: PlaybackState = PlaybackState.READY,
     val image: Bitmap? = null,
     val frameCount: Int = 0,
@@ -27,62 +39,129 @@ data class PreviewState(
     val fps: Double = 0.0,
     val error: String? = null,
     val debug: Boolean = false,
+    val detectionEnabled: Boolean = true,
+    val detections: DetectionResult? = null,
+    val detectionError: String? = null,
+    val p50: Double = 0.0,
+    val p95: Double = 0.0,
+    val samples: Int = 0,
+    val skipped: Long = 0,
+    val processingAgeMillis: Double = 0.0,
 )
+
+internal fun uprightBitmap(frame: VideoFrame): Bitmap {
+    require(frame.rotationDegrees in setOf(0, 90, 180, 270))
+    val raw = Bitmap.createBitmap(frame.argb, frame.width, frame.height, Bitmap.Config.ARGB_8888)
+    if (frame.rotationDegrees == 0) return raw
+    val matrix = Matrix().apply { postRotate(frame.rotationDegrees.toFloat()) }
+    return Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, false).also { if (it !== raw) raw.recycle() }
+}
 
 @HiltViewModel
 class PreviewViewModel
     @Inject
     constructor(
         private val factory: VideoSourceFactory,
+        private val detector: DetectionEngine,
     ) : ViewModel() {
         private val mutableState = MutableStateFlow(PreviewState())
         val state = mutableState.asStateFlow()
         private var source: VideoSource? = null
         private var framesJob: Job? = null
         private var statusJob: Job? = null
+        private var run = 0L
 
-        fun select(uri: Uri) {
-            source?.stop()
+        fun select(uri: Uri) = attach(factory.create(uri, viewModelScope), false)
+
+        fun selectCamera(
+            owner: LifecycleOwner,
+            rotation: Int,
+        ) = attach(factory.camera(owner, rotation, viewModelScope), true)
+
+        fun cameraDenied() {
+            mutableState.update { it.copy(error = "Caméra refusée. Vous pouvez choisir une vidéo locale.") }
+        }
+
+        private fun attach(
+            selectedSource: VideoSource,
+            camera: Boolean,
+        ) {
+            stop()
+            source?.close()
             framesJob?.cancel()
             statusJob?.cancel()
-            mutableState.value = PreviewState(selected = true, debug = mutableState.value.debug)
-            val selectedSource = factory.create(uri, viewModelScope)
+            val old = mutableState.value
+            mutableState.value =
+                PreviewState(
+                    selected = true,
+                    camera = camera,
+                    sourceLabel = if (camera) "CAMÉRA TÉLÉPHONE" else "VIDÉO LOCALE",
+                    debug = old.debug,
+                    detectionEnabled = old.detectionEnabled,
+                )
             source = selectedSource
             statusJob =
-                viewModelScope.launch {
+                viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
                     selectedSource.status.collect { status ->
                         mutableState.update { it.copy(state = status.state, error = status.message) }
                     }
                 }
             framesJob =
-                viewModelScope.launch {
+                viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                    var currentRun = -1L
                     var firstNanos = 0L
-                    selectedSource.frames().collect { frame ->
-                        val bitmap =
-                            withContext(Dispatchers.Default) {
-                                val raw = Bitmap.createBitmap(frame.argb, frame.width, frame.height, Bitmap.Config.ARGB_8888)
-                                if (frame.rotationDegrees == 0) {
-                                    raw
-                                } else {
-                                    val matrix = Matrix().apply { postRotate(frame.rotationDegrees.toFloat()) }
-                                    Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true).also {
-                                        if (it !== raw) raw.recycle()
+                    var lastSequence = 0L
+                    var latency = LatencyWindow()
+                    selectedSource.frames().conflate().collect { frame ->
+                        val frameRun = run
+                        if (frameRun != currentRun) {
+                            currentRun = frameRun
+                            firstNanos = 0
+                            lastSequence = 0
+                            latency = LatencyWindow()
+                        }
+                        val bitmap = withContext(Dispatchers.Default) { uprightBitmap(frame) }
+                        var result: DetectionResult? = null
+                        val enabled = mutableState.value.detectionEnabled
+                        if (enabled && mutableState.value.detectionError == null) {
+                            try {
+                                result = detector.detect(bitmap)
+                            } catch (cancelled: CancellationException) {
+                                bitmap.recycle()
+                                throw cancelled
+                            } catch (_: Exception) {
+                                if (frameRun == run) {
+                                    mutableState.update {
+                                        it.copy(detectionError = "Modèles absents ou incompatibles dans cette installation.")
                                     }
                                 }
                             }
-                        // A stop or source replacement may have happened during conversion.
-                        if (source === selectedSource && selectedSource.status.value.state == PlaybackState.PLAYING) {
+                        }
+                        val active = selectedSource.status.value.state in setOf(PlaybackState.PLAYING, PlaybackState.ENDED)
+                        if (source === selectedSource && frameRun == run && active) {
+                            val now = SystemClock.elapsedRealtimeNanos()
                             val count = mutableState.value.frameCount + 1
-                            if (count == 1) firstNanos = frame.decodedAtNanos
-                            val duration = (frame.decodedAtNanos - firstNanos) / 1e9
+                            if (firstNanos == 0L) firstNanos = now
+                            val duration = (now - firstNanos) / 1e9
+                            result?.let { latency.add(it.totalMillis) }
+                            val omitted = (frame.sequenceNumber - lastSequence - 1).coerceAtLeast(0)
+                            lastSequence = frame.sequenceNumber
                             mutableState.update {
                                 it.copy(
                                     image = bitmap,
                                     frameCount = count,
                                     ptsUs = frame.presentationTimeUs,
                                     fps = if (duration > 0) (count - 1) / duration else 0.0,
+                                    detections = if (it.detectionEnabled) result else null,
+                                    p50 = latency.percentile(0.5),
+                                    p95 = latency.percentile(0.95),
+                                    samples = latency.count,
+                                    skipped = it.skipped + omitted,
+                                    processingAgeMillis = (now - frame.decodedAtNanos) / 1e6,
                                 )
                             }
+                        } else {
+                            bitmap.recycle()
                         }
                     }
                 }
@@ -90,19 +169,53 @@ class PreviewViewModel
 
         fun start() {
             if (mutableState.value.state == PlaybackState.PLAYING) return
-            mutableState.update { it.copy(frameCount = 0, ptsUs = 0, fps = 0.0, image = null, error = null) }
+            run++
+            mutableState.update {
+                it.copy(
+                    frameCount = 0,
+                    ptsUs = 0,
+                    fps = 0.0,
+                    image = null,
+                    error = null,
+                    detections = null,
+                    detectionError = null,
+                    samples = 0,
+                    p50 = 0.0,
+                    p95 = 0.0,
+                    skipped = 0,
+                    processingAgeMillis = 0.0,
+                )
+            }
             source?.start()
         }
 
         fun stop() {
+            run++
             source?.stop()
+            mutableState.update { it.copy(detections = null) }
+        }
+
+        /** Activity destruction must not leave an old camera LifecycleOwner in the retained ViewModel. */
+        fun detachCamera() {
+            if (!mutableState.value.camera) return
+            stop()
+            source?.close()
+            source = null
+            framesJob?.cancel()
+            statusJob?.cancel()
+            mutableState.update { it.copy(selected = false) }
         }
 
         fun debug(enabled: Boolean) {
             mutableState.update { it.copy(debug = enabled) }
         }
 
+        fun detection(enabled: Boolean) {
+            mutableState.update { it.copy(detectionEnabled = enabled, detectionError = null, detections = null) }
+        }
+
         override fun onCleared() {
-            source?.stop()
+            source?.close()
+            CoroutineScope(Dispatchers.Default).launch { detector.close() }
         }
     }
