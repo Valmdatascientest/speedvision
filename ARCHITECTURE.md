@@ -1,4 +1,4 @@
-# Architecture SpeedVision — Sprint 3
+# Architecture SpeedVision — Sprint 4
 
 ## Modules et responsabilités
 
@@ -7,6 +7,9 @@ app/                             Assemblage Android/Hilt
   camera/CameraXVideoSource       ImageAnalysis, permissions et lifecycle
   data/VideoFileSource            MediaExtractor + MediaCodec, vrais PTS
   vision/OnnxDetector             Prétraitement et session ONNX CPU
+  geometry/DistanceEstimator     OpenCV IPPE, profondeur axiale et rejets
+  geometry/CalibrationJson       Profil versionné, validation stricte
+  presentation/CalibrationWorkbench  Image arrêtée, paramètres, coins et JSON
   vision/DetectionEngine          Véhicules → ROIs bornées → plaques
   presentation/PreviewViewModel   Coroutines, état, annulation, statistiques
   MainActivity.kt                 Compose, source, cadres et diagnostics
@@ -14,6 +17,7 @@ app/                             Assemblage Android/Hilt
   VideoSource / VideoFrame        Contrat, pixels, PTS, origine, crop natif
   Detection / Letterbox           Coordonnées et inverse resize/padding
   YoloPostprocessor               Validation sortie, filtre classes, NMS
+  Calibration / ImagePoint       Contrats métriques, source et coordonnées
   VehicleTracker                 Kalman, association IoU/Hungarian, identités
   LatencyWindow                  Statistiques bornées p50/p95
  models/                         Audit des poids et procédure de préparation
@@ -75,3 +79,11 @@ Confirmation après 3 observations consécutives. Une piste confirmée peut rest
 STOP/START, source, détection, erreur source, crop/origine temporelle/rotation, dimensions, PTS dupliqués ou inversés et gap > 500 ms invalident les pistes. Une génération de détection empêche une inférence démarrée avant un changement de bouton de recréer des pistes. Les plaques ne sont pas prédites ni conservées : `TrackedPlate` indique le parent courant, pas une réidentification indépendante de la plaque. Aucune fenêtre de distance/vitesse n'existe encore.
 
 Les covariances et seuils sont expérimentaux, sans confiance probabiliste affichée. Occlusion longue, changement de classe et mouvement brusque peuvent créer une nouvelle identité. Deux objets identiques superposés restent ambigus sans apparence. Validation synthétique et intégration sur image répétée ne prouvent pas la stabilité terrain.
+
+## Géométrie Sprint 4
+
+OpenCV Android 4.12.0 fournit IPPE et reprojection; le domaine reste sans dépendance Android/OpenCV. La calibration conserve les intrinsics et Brown5 natifs. Les coins observés sont remis dans ce repère par inversion exacte du crop/rotation. Toutes les matrices natives sont libérées en `finally`. Aucune homographie à échelle arbitraire n'est interprétée comme métrique.
+
+L'assistant stoppe la source, conserve l'image/PTS en mémoire et travaille sur cette image seule. Le calcul s'exécute hors thread UI; une révision invalide son résultat si paramètres ou coins changent. Une calibration exportée est un JSON sans pixels, écrit seulement sur sélection explicite du document. Les profils importés ne sont jamais réaffectés silencieusement à une autre source. L'URI source est hachée pour l'identifiant local; ce n'est pas une preuve de contenu ou de mode optique.
+
+`DistanceEstimate` est soit `Accepted(Z, reprojectionRmsPx, tiltDegrees)` soit `Rejected(reason)`. L'acceptation signifie que les contrôles géométriques ont passé, pas une précision statistique acquise. L'incertitude reste non quantifiée et affichée ainsi. Le résultat est indépendant du tracker : pas de fenêtre temporelle, pas d'attribution automatique d'une mesure manuelle à une piste. La profondeur en direct attend un détecteur de coins validé. Voir [procédure et seuils](CALIBRATION.md).

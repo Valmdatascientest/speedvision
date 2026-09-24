@@ -1,6 +1,6 @@
 # Backlog Agile
 
-Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté, preuves dans docs/SPRINT_3_REPORT.md.
+Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté. Sprint 4 : calibration et profondeur manuelle implémentées; détection automatique des coins et validation matérielle encore ouvertes. Voir docs/SPRINT_4_REPORT.md.
 
 Definition of Done commune : critères satisfaits, implémentation réelle ou limite déclarée, tests pertinents verts, formatage/lint/build propres, revue de confidentialité, docs mises à jour et aucun résultat de précision inventé. Une story avec validation matérielle non réalisée reste à valider.
 
@@ -70,6 +70,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S4-01 · Epic 5 — Geometry
 
+- État : PnP IPPE et coins manuels implémentés. Détection automatique des coins non disponible; tests de projections synthétiques et validation terrain distincts.
+
 - Description : Exploiter les coins et la pose.
 - Sprint : 4.
 - Critères d’acceptation : Quatre coins ordonnés; PnP métrique; rejet ambiguïté; pas de distance issue de largeur warp arbitraire.
@@ -77,6 +79,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 - Definition of Done : DoD commune + preuves des critères/tests ci-dessus dans le rapport de sprint.
 
 ## S4-02 · Epic 6 — Distance estimation
+
+- État : Profondeur axiale sur image arrêtée implémentée, motifs de rejet et incertitude non quantifiée affichés. Mesure continue et validation sur distances réelles restent ouvertes.
 
 - Description : Estimer une profondeur avec incertitude.
 - Sprint : 4.
@@ -117,6 +121,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 - Definition of Done : DoD commune + preuves des critères/tests ci-dessus dans le rapport de sprint.
 
 ## S4-03 · Epic 11 — Calibration
+
+- État : Assistant de saisie/import/export et outil hors application sur damier implémentés. Acquisition intégrée et calibration matérielle indépendante non réalisées.
 
 - Description : Enregistrer/importer une calibration source.
 - Sprint : 4.

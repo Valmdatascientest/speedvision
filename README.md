@@ -1,6 +1,6 @@
 # SpeedVision
 
-Prototype Android expérimental d'estimation future de **vitesse relative axiale** à partir de la géométrie d'une plaque connue. Le Sprint 3 ajoute un suivi temporel des véhicules à la détection locale véhicule → plaque et à CameraX. **Aucune vitesse ou distance n'est encore mesurée.**
+Prototype Android expérimental d'estimation future de **vitesse relative axiale** à partir de la géométrie d'une plaque connue. Le Sprint 4 ajoute un assistant de calibration et une profondeur axiale **manuelle sur image arrêtée**, avec coins sélectionnés et paramètres connus. Le tracking et la détection restent disponibles. **Aucune vitesse n’est encore mesurée.**
 
 ## Utiliser
 
@@ -10,9 +10,11 @@ Avec les modèles provisionnés, les cadres verts indiquent les véhicules et le
 
 Sans modèles, le lecteur et CameraX fonctionnent et la détection indique son indisponibilité. Aucun téléchargement n'est effectué par l'application. [Préparer les modèles et comprendre leurs limites/licences](models/README.md).
 
+Après lecture, ouvrir **Calibration / distance sur image arrêtée** pour importer/saisir une calibration, définir les dimensions physiques et sélectionner les quatre coins réels. La mesure est expérimentale, sans incertitude métrique quantifiée. [Procédure et limites](CALIBRATION.md).
+
 ## Compiler et tester
 
-JDK 17, SDK 35/build-tools 35.0.0, wrapper Gradle 8.11.1. Définir sdk.dir dans local.properties (non versionné) ou ANDROID_HOME :
+JDK 17, SDK 35/build-tools 35.0.0, wrapper Gradle 8.11.1. Définir sdk.dir dans local.properties (non versionné) ou ANDROID_HOME. Installer les dépendances Python de calibration dans `.tools/calibration-env` comme décrit dans [CALIBRATION.md](CALIBRATION.md), ou dans le Python utilisé par le script :
 
 ```sh
 ./scripts/check.sh
@@ -36,7 +38,7 @@ APK local : `app/build/outputs/apk/debug/app-debug.apk`. Les modèles AGPL ne so
 - [Architecture](ARCHITECTURE.md), [faisabilité Meta](docs/FEASIBILITY.md), [algorithme futur](docs/ALGORITHM.md)
 - [Backlog](BACKLOG.md), [sprints](SPRINTS.md), [tests](TESTING.md), [calibration](CALIBRATION.md)
 - [Audit et versions des modèles](models/README.md), [évaluation détection](testing/detection/README.md), [protocole vitesse terrain](testing/README.md)
-- [Rapport Sprints 0–1](docs/SPRINT_REPORT.md) et [rapport Sprint 2](docs/SPRINT_2_REPORT.md), [rapport Sprint 3](docs/SPRINT_3_REPORT.md)
+- [Rapport Sprints 0–1](docs/SPRINT_REPORT.md) et [rapport Sprint 2](docs/SPRINT_2_REPORT.md), [rapport Sprint 3](docs/SPRINT_3_REPORT.md), [rapport Sprint 4](docs/SPRINT_4_REPORT.md)
 
 La profondeur Z = fx W/w exige une pose et une calibration appropriées. Sa dérivée n'est pas une vitesse absolue routière. Un score de détecteur n'est ni une confiance de vitesse ni une précision acquise. Le modèle de plaques doit être évalué sur un corpus indépendant; aucune précision terrain n'est revendiquée.
 
@@ -44,4 +46,4 @@ La profondeur Z = fx W/w exige une pose et une calibration appropriées. Sa dér
 
 Traitement local, aucun OCR, aucune sauvegarde de vidéo ou de plaque, aucune permission Internet, microphone ou stockage global. Le sélecteur système donne accès au seul fichier choisi; préférer un fichier déjà local pour un essai hors ligne. L'APK n'embarque pas le SDK Meta. Les images publiques de smoke test sont téléchargées uniquement par le script de développement et ne sont pas des captures utilisateur.
 
-Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. La branche du Sprint 3 est `feature/sprint-3-tracking`. La suite calibration/vitesse/voix/Meta reste planifiée.
+Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. La branche du Sprint 4 est `feature/sprint-4-calibration`. La distance automatique, la vitesse, la voix et Meta restent à compléter.

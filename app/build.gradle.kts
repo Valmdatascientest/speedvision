@@ -12,8 +12,8 @@ android {
         applicationId = "fr.speedvision"
         minSdk = 28
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -28,6 +28,7 @@ android {
 kapt { correctErrorTypes = true }
 dependencies {
     implementation(project(":domain"))
+    implementation("org.opencv:opencv:4.12.0")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
     implementation("androidx.camera:camera-camera2:1.4.2")
     implementation("androidx.camera:camera-lifecycle:1.4.2")

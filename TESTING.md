@@ -1,3 +1,7 @@
+# Validation Sprint 4
+
+Les commandes habituelles incluent désormais le test Python de calibration (dépendances dans `scripts/requirements-calibration.txt`, environnement `.tools/calibration-env` ou Python courant). Les nouveaux tests Android PnP/JSON/assistant utilisent OpenCV réellement et ne nécessitent pas les poids ONNX. La CI installe ces dépendances et les exécute également. Voir [rapport Sprint 4](docs/SPRINT_4_REPORT.md) et [procédure](CALIBRATION.md).
+
 # Validation Sprint 3
 
 Le tracker ajoute 11 tests JVM déterministes, dont croisements, perte/expiration, resets, association des plaques et comparaison Hungarian à une recherche exhaustive. Les tests Android incluent le suivi des détections ONNX réelles sur une image répétée et les compteurs Compose. Voir [rapport Sprint 3](docs/SPRINT_3_REPORT.md) pour les résultats et limites. Les commandes `scripts/check.sh` et `connectedDebugAndroidTest` restent identiques.

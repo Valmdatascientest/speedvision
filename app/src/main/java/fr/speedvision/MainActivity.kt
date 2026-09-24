@@ -35,6 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -50,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import fr.speedvision.domain.PlaybackState
 import fr.speedvision.domain.TrackStatus
+import fr.speedvision.presentation.CalibrationWorkbench
 import fr.speedvision.presentation.PreviewState
 import fr.speedvision.presentation.PreviewViewModel
 import java.util.Locale
@@ -67,6 +71,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
+            var calibrationOpen by remember { mutableStateOf(false) }
             val picker =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                     if (uri != null) model.select(uri)
@@ -91,7 +96,16 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     detection = model::detection,
+                    calibration = {
+                        model.stop()
+                        calibrationOpen = true
+                    },
                 )
+                val image = state.image
+                val binding = state.calibrationBinding
+                if (calibrationOpen && image != null && binding != null) {
+                    CalibrationWorkbench(image, binding, state.ptsUs) { calibrationOpen = false }
+                }
             }
         }
     }
@@ -116,6 +130,7 @@ fun PreviewScreen(
     debug: (Boolean) -> Unit,
     camera: () -> Unit = {},
     detection: (Boolean) -> Unit = {},
+    calibration: () -> Unit = {},
 ) {
     Scaffold { insets ->
         Column(
@@ -127,7 +142,7 @@ fun PreviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("SpeedVision", style = MaterialTheme.typography.headlineLarge)
-            Text("LAB / 03     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
+            Text("LAB / 04     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -216,11 +231,14 @@ fun PreviewScreen(
                 )
                 Text("${tracking.plates.size} plaque(s) rattachée(s) à une piste confirmée")
             }
+            OutlinedButton(onClick = calibration, enabled = state.image != null && state.calibrationBinding != null) {
+                Text("Calibration / distance sur image arrêtée")
+            }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
                     Text("Distance : —     ·     Confiance : —")
-                    Text("Mesure indisponible : calibration et estimation de vitesse prévues aux prochains sprints.")
+                    Text("Distance manuelle disponible dans l’assistant. La vitesse reste prévue au Sprint 5.")
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -267,7 +285,7 @@ fun PreviewScreen(
                 )
             }
             Text(
-                "Meta, voix et calibration : non disponibles dans cette version.",
+                "Meta et voix : non disponibles dans cette version.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(4.dp))

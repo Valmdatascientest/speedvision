@@ -1,6 +1,6 @@
 # Algorithme métrologique proposé
 
-Le suivi temporel est implémenté au Sprint 3; géométrie métrique et estimation de vitesse ci-dessous restent planifiées. Voir [architecture du tracker](../ARCHITECTURE.md#suivi-sprint-3).
+Le suivi temporel est implémenté au Sprint 3. Le Sprint 4 implémente la profondeur PnP à partir de coins manuels et d’une calibration connue sur image arrêtée. Géométrie automatique, incertitude validée et estimation de vitesse ci-dessous restent planifiées. Voir [architecture du tracker](../ARCHITECTURE.md#suivi-sprint-3).
 
 ## Grandeur mesurée et signe
 

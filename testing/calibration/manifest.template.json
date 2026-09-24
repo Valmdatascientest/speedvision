@@ -1,0 +1,8 @@
+{
+  "innerCorners": [9, 6],
+  "squareMeters": 0.025,
+  "provenance": "REPLACE: camera, fixed optical mode, date, measured board, independent validation",
+  "plate": {"name": "REPLACE: measured format", "widthMeters": 0.52, "heightMeters": 0.11},
+  "training": [],
+  "validation": []
+}

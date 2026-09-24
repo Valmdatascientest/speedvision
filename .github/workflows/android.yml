@@ -24,6 +24,10 @@ jobs:
           packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r scripts/requirements-calibration.txt
       - run: ./scripts/check.sh
       - uses: actions/upload-artifact@v4
         if: always()

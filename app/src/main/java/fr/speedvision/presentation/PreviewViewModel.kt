@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.speedvision.di.VideoSourceFactory
+import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.domain.DetectionResult
 import fr.speedvision.domain.LatencyWindow
 import fr.speedvision.domain.PlaybackState
@@ -45,6 +46,7 @@ data class PreviewState(
     val detections: DetectionResult? = null,
     val detectionError: String? = null,
     val tracking: TrackingResult? = null,
+    val calibrationBinding: CalibrationBinding? = null,
     val p50: Double = 0.0,
     val p95: Double = 0.0,
     val samples: Int = 0,
@@ -70,6 +72,7 @@ class PreviewViewModel
         private val mutableState = MutableStateFlow(PreviewState())
         val state = mutableState.asStateFlow()
         private var source: VideoSource? = null
+        private var sourceId = ""
         private var framesJob: Job? = null
         private var statusJob: Job? = null
         private var run = 0L
@@ -83,12 +86,24 @@ class PreviewViewModel
             frameGeometry = null
         }
 
-        fun select(uri: Uri) = attach(factory.create(uri, viewModelScope), false)
+        fun select(uri: Uri) {
+            sourceId =
+                "video:" +
+                java.security.MessageDigest
+                    .getInstance(
+                        "SHA-256",
+                    ).digest(uri.toString().toByteArray())
+                    .joinToString("") { "%02x".format(it) }
+            attach(factory.create(uri, viewModelScope), false)
+        }
 
         fun selectCamera(
             owner: LifecycleOwner,
             rotation: Int,
-        ) = attach(factory.camera(owner, rotation, viewModelScope), true)
+        ) {
+            sourceId = "camera-back:${android.os.Build.MANUFACTURER}:${android.os.Build.MODEL}"
+            attach(factory.camera(owner, rotation, viewModelScope), true)
+        }
 
         fun cameraDenied() {
             mutableState.update { it.copy(error = "Caméra refusée. Vous pouvez choisir une vidéo locale.") }
@@ -171,6 +186,17 @@ class PreviewViewModel
                             mutableState.update {
                                 it.copy(
                                     image = bitmap,
+                                    calibrationBinding =
+                                        CalibrationBinding(
+                                            sourceId,
+                                            frame.geometry.nativeWidth,
+                                            frame.geometry.nativeHeight,
+                                            frame.geometry.cropLeft,
+                                            frame.geometry.cropTop,
+                                            frame.width,
+                                            frame.height,
+                                            frame.rotationDegrees,
+                                        ),
                                     frameCount = count,
                                     ptsUs = frame.presentationTimeUs,
                                     fps = if (duration > 0) (count - 1) / duration else 0.0,
@@ -200,6 +226,7 @@ class PreviewViewModel
                     ptsUs = 0,
                     fps = 0.0,
                     image = null,
+                    calibrationBinding = null,
                     error = null,
                     detections = null,
                     tracking = null,
