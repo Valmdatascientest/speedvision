@@ -16,7 +16,11 @@ Choix inspiré de [SORT, Bewley et al.](https://arxiv.org/abs/1602.00763), impl�
 
 Le test Android d'inférence réelle du bus vérifie aussi la permanence de l'ID et la confirmation sur huit passages. C'est une intégration sur image répétée, pas un benchmark de tracking terrain. Un test Compose vérifie les compteurs et l'absence de vitesse/distance inventées.
 
-Résultats finaux des contrôles locaux et de la CI à consigner après exécution.
+Validation locale du 23 septembre 2026 : **23 tests JVM, 3 tests Python et 11 tests Android réussis**, zéro échec et zéro test Android ignoré (`requireModels=true`, Android 15/API 35 ARM64). Formatage, compilation, lint et assemblage des deux APK réussis via `scripts/check.sh`. Les journaux locaux sont `.tools/sprint3-check.log` et `.tools/sprint3-device.log`; rapports détaillés dans les répertoires `build`.
+
+Contrôle visuel sur émulateur : vidéo MP4 construite à partir de la photo publique du bus, cadre et ID confirmé alignés; désactiver la détection efface les compteurs de suivi, puis rejouer crée une nouvelle identité (#2 après #1). Capture locale `.tools/sprint3-screen.png` (non publiée).
+
+La [CI distante du commit `461afea`](https://github.com/Valmdatascientest/speedvision/actions/runs/35907706443) est **verte** : jobs `build` et `device-tests` réussis. Le job optionnel `model-validation` n’a pas été exécuté; les trois tests qui exigent les modèles sont ignorés dans la CI générique sans poids. La suite locale ci-dessus impose les modèles et exécute les onze tests Android.
 
 ## Limites et protocole restant
 
