@@ -1,4 +1,4 @@
-# Architecture SpeedVision — Sprint 4
+# Architecture SpeedVision — Sprint 5
 
 ## Modules et responsabilités
 
@@ -9,6 +9,7 @@ app/                             Assemblage Android/Hilt
   vision/OnnxDetector             Prétraitement et session ONNX CPU
   geometry/DistanceEstimator     OpenCV IPPE, profondeur axiale et rejets
   geometry/CalibrationJson       Profil versionné, validation stricte
+  presentation/SpeedWorkbench    Import/relecture et export CSV explicites
   presentation/CalibrationWorkbench  Image arrêtée, paramètres, coins et JSON
   vision/DetectionEngine          Véhicules → ROIs bornées → plaques
   presentation/PreviewViewModel   Coroutines, état, annulation, statistiques
@@ -17,6 +18,7 @@ app/                             Assemblage Android/Hilt
   VideoSource / VideoFrame        Contrat, pixels, PTS, origine, crop natif
   Detection / Letterbox           Coordonnées et inverse resize/padding
   YoloPostprocessor               Validation sortie, filtre classes, NMS
+  SpeedEstimator / SpeedCsv      Huber, continuité, qualité, CSV borné
   Calibration / ImagePoint       Contrats métriques, source et coordonnées
   VehicleTracker                 Kalman, association IoU/Hungarian, identités
   LatencyWindow                  Statistiques bornées p50/p95
@@ -66,7 +68,7 @@ Les assets absents ou incompatibles donnent un état explicite; jamais une déte
 
 ## Suite planifiée
 
-Sprint 5 : SpeedEstimator robuste et qualité. Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
 
 Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.
 
@@ -87,3 +89,13 @@ OpenCV Android 4.12.0 fournit IPPE et reprojection; le domaine reste sans dépen
 L'assistant stoppe la source, conserve l'image/PTS en mémoire et travaille sur cette image seule. Le calcul s'exécute hors thread UI; une révision invalide son résultat si paramètres ou coins changent. Une calibration exportée est un JSON sans pixels, écrit seulement sur sélection explicite du document. Les profils importés ne sont jamais réaffectés silencieusement à une autre source. L'URI source est hachée pour l'identifiant local; ce n'est pas une preuve de contenu ou de mode optique.
 
 `DistanceEstimate` est soit `Accepted(Z, reprojectionRmsPx, tiltDegrees)` soit `Rejected(reason)`. L'acceptation signifie que les contrôles géométriques ont passé, pas une précision statistique acquise. L'incertitude reste non quantifiée et affichée ainsi. Le résultat est indépendant du tracker : pas de fenêtre temporelle, pas d'attribution automatique d'une mesure manuelle à une piste. La profondeur en direct attend un détecteur de coins validé. Voir [procédure et seuils](CALIBRATION.md).
+
+## Vitesse Sprint 5
+
+Le domaine contient une fenêtre de profondeurs par instance `SpeedEstimator`, pour une seule identité active. Le laboratoire est séparé du ViewModel vidéo : il travaille sur un CSV explicitement importé, conserve les PTS et ne mélange pas les pistes. Les calculs tournent sur `Dispatchers.Default` avec contrôle d'annulation entre observations. L'import est borné; aucune persistance automatique. Un résultat rejeté comporte un motif et aucun champ vitesse.
+
+La régression centrée utilise le temps source, une initialisation médiane des pentes et cinq itérations Huber pondérées par qualité. La médiane/MAD borne l'influence des valeurs aberrantes; les contrôles exigent un effectif et une durée d'inliers suffisants, un dernier point cohérent et des pentes de demi-fenêtres compatibles. Les identités, paramètres et critères exacts sont décrits dans [l'algorithme](docs/ALGORITHM.md). `qualityScore` est une heuristique, pas un intervalle ni une probabilité.
+
+L'assistant PnP peut exporter une observation avec son vrai PTS, un ID annoté, une qualité explicitement évaluée et le hash complet du profil de calibration. Il n'attribue pas l'ID du tracker automatiquement et ne collecte pas de série de profondeurs en continu. La liaison automatique détecteur de coins → géométrie → piste → vitesse reste à faire après validation de la géométrie.
+
+Le CSV de résultats indique algorithme, temps source/référence, identité, profondeur, vitesse signée, qualité, effectifs, résidu, latence de calcul et motif. Le temps de calcul ne comprend ni décodage, ni détection, ni annotation; il n'est pas une latence caméra → vitesse. Les fichiers n'apparaissent qu'après confirmation du sélecteur système, sans OCR ni image.

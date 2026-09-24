@@ -1,6 +1,6 @@
 # Backlog Agile
 
-Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté. Sprint 4 : calibration et profondeur manuelle implémentées; détection automatique des coins et validation matérielle encore ouvertes. Voir docs/SPRINT_4_REPORT.md.
+Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté. Sprint 4 : calibration et profondeur manuelle implémentées; détection automatique des coins et validation matérielle encore ouvertes. Voir docs/SPRINT_4_REPORT.md. Sprint 5 : moteur temporel et laboratoire CSV implémentés, validation terrain ouverte (docs/SPRINT_5_REPORT.md).
 
 Definition of Done commune : critères satisfaits, implémentation réelle ou limite déclarée, tests pertinents verts, formatage/lint/build propres, revue de confidentialité, docs mises à jour et aucun résultat de précision inventé. Une story avec validation matérielle non réalisée reste à valider.
 
@@ -90,6 +90,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S5-01 · Epic 7 — Speed estimation
 
+- État : Huber, fenêtres/identités, rejets et comparaison synthétique implémentés. Vitesse sur séries importées; pas de vitesse live. Validation vidéo métrique indépendante ouverte.
+
 - Description : Estimer la vitesse relative signée.
 - Sprint : 5.
 - Critères d’acceptation : Fenêtre multi-frame, temps source, reset, paramètres versionnés; comparaison des filtres.
@@ -147,6 +149,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 - Definition of Done : DoD commune + preuves des critères/tests ci-dessus dans le rapport de sprint.
 
 ## S5-02 · Epic 14 — Confidentialité et diagnostic
+
+- État : CSV explicite observations/résultats et annulation via sélecteur, aucune écriture automatique ni pixels. Effacement mémoire disponible; fichiers exportés gérés par l’utilisateur.
 
 - Description : Exporter les mesures seulement sur demande.
 - Sprint : 5.

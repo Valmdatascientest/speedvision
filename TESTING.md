@@ -1,3 +1,7 @@
+# Validation Sprint 5
+
+`./scripts/check.sh` ajoute les tests du moteur de vitesse, les tests CSV/assemblage et le benchmark reproductible des filtres (`domain/build/reports/speed/benchmark.csv`). Le test Android du laboratoire couvre l’exemple explicitement synthétique, le signe/unité, l’annulation du sélecteur d’export et l’effacement. Voir [rapport Sprint 5](docs/SPRINT_5_REPORT.md) et [protocole de séries](testing/speed/README.md).
+
 # Validation Sprint 4
 
 Les commandes habituelles incluent désormais le test Python de calibration (dépendances dans `scripts/requirements-calibration.txt`, environnement `.tools/calibration-env` ou Python courant). Les nouveaux tests Android PnP/JSON/assistant utilisent OpenCV réellement et ne nécessitent pas les poids ONNX. La CI installe ces dépendances et les exécute également. Voir [rapport Sprint 4](docs/SPRINT_4_REPORT.md) et [procédure](CALIBRATION.md).

@@ -56,6 +56,7 @@ import fr.speedvision.domain.TrackStatus
 import fr.speedvision.presentation.CalibrationWorkbench
 import fr.speedvision.presentation.PreviewState
 import fr.speedvision.presentation.PreviewViewModel
+import fr.speedvision.presentation.SpeedWorkbench
 import java.util.Locale
 import kotlin.math.min
 
@@ -72,6 +73,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             var calibrationOpen by remember { mutableStateOf(false) }
+            var speedOpen by remember { mutableStateOf(false) }
             val picker =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                     if (uri != null) model.select(uri)
@@ -96,11 +98,16 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     detection = model::detection,
+                    speed = {
+                        model.stop()
+                        speedOpen = true
+                    },
                     calibration = {
                         model.stop()
                         calibrationOpen = true
                     },
                 )
+                if (speedOpen) SpeedWorkbench { speedOpen = false }
                 val image = state.image
                 val binding = state.calibrationBinding
                 if (calibrationOpen && image != null && binding != null) {
@@ -131,6 +138,7 @@ fun PreviewScreen(
     camera: () -> Unit = {},
     detection: (Boolean) -> Unit = {},
     calibration: () -> Unit = {},
+    speed: () -> Unit = {},
 ) {
     Scaffold { insets ->
         Column(
@@ -142,7 +150,7 @@ fun PreviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("SpeedVision", style = MaterialTheme.typography.headlineLarge)
-            Text("LAB / 04     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
+            Text("LAB / 05     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -234,11 +242,12 @@ fun PreviewScreen(
             OutlinedButton(onClick = calibration, enabled = state.image != null && state.calibrationBinding != null) {
                 Text("Calibration / distance sur image arrêtée")
             }
+            OutlinedButton(onClick = speed) { Text("Laboratoire de vitesse / CSV") }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
                     Text("Distance : —     ·     Confiance : —")
-                    Text("Distance manuelle disponible dans l’assistant. La vitesse reste prévue au Sprint 5.")
+                    Text("Distance manuelle dans l’assistant ; vitesse sur séries dans le laboratoire. Pas de vitesse en direct.")
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {

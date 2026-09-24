@@ -9,7 +9,7 @@ Le Sprint 4 permet une **mesure manuelle sur image arrêtée** avec quatre coins
 3. Choisir les dimensions mesurées de la plaque, ou le raccourci 520 × 110 mm après vérification. Ce format n'est ni universel ni reconnu automatiquement.
 4. Confirmer explicitement la source, le mode optique fixe, les paramètres et dimensions, puis appliquer. Zoom/stabilisation variables, changement de lentille ou mode inconnu rendent cette calibration inadaptée : ne pas confirmer.
 5. Avec zoom et réglage du centre, sélectionner les coins réels dans l'ordre physique haut gauche, haut droit, bas droit, bas gauche. La plaque entière doit être nette et plane. Effacer pour recommencer. Les points restent attachés à cette seule image.
-6. Estimer la **profondeur axiale Z**, en mètres. L'inclinaison et la reprojection sont des diagnostics, pas une garantie de précision. L'incertitude métrique reste explicitement non quantifiée. Aucune vitesse n'est produite.
+6. Estimer la **profondeur axiale Z**, en mètres. L'inclinaison et la reprojection sont des diagnostics, pas une garantie de précision. L'incertitude métrique reste explicitement non quantifiée. Aucune vitesse n'est produite dans cet assistant. Une observation peut être exportée pour le [laboratoire de séries](testing/speed/README.md), avec identité annotée, qualité évaluée et caméra fixe déclarée.
 
 Un profil n'est conservé sur disque que via **Exporter le profil JSON**, au lieu choisi par l'utilisateur. Aucun pixel n'est exporté. L'import exige le même identifiant de source et la même géométrie puis une nouvelle confirmation. Fermer l'assistant perd les modifications non exportées. Exporter la géométrie pour la mire produit seulement le descripteur source, pas une calibration.
 

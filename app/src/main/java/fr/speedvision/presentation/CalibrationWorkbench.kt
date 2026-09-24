@@ -45,9 +45,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.domain.CameraCalibration
+import fr.speedvision.domain.DepthObservation
 import fr.speedvision.domain.DistanceEstimate
 import fr.speedvision.domain.ImagePoint
 import fr.speedvision.domain.PlateProfile
+import fr.speedvision.domain.SpeedCsv
 import fr.speedvision.geometry.CalibrationJson
 import fr.speedvision.geometry.DistanceEstimator
 import kotlinx.coroutines.Dispatchers
@@ -93,6 +95,24 @@ fun CalibrationWorkbench(
         revision++
     }
     var exportText by remember { mutableStateOf("") }
+    var annotationTrack by remember { mutableStateOf("") }
+    var observationQuality by remember { mutableStateOf("") }
+    var cameraStationary by remember { mutableStateOf(false) }
+    val exportObservation =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    message =
+                        runCatching {
+                            withContext(Dispatchers.IO) {
+                                val output = requireNotNull(context.contentResolver.openOutputStream(uri, "wt"))
+                                output.bufferedWriter().use { writer -> writer.write(exportText) }
+                            }
+                            "Observation exportée. Rassembler une série du même véhicule avant estimation de vitesse."
+                        }.getOrElse { "Export impossible." }
+                }
+            }
+        }
     val export =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
             if (uri != null) {
@@ -352,6 +372,48 @@ fun CalibrationWorkbench(
                         Text(
                             "Incertitude métrique non quantifiée. Sensible aux coins, dimensions et calibration. La reprojection n’est pas une garantie de précision. Aucune vitesse calculée.",
                         )
+                        Text(
+                            "Exporter pour une série : identifiez manuellement le même véhicule entre images. Aucun ID du tracker n’est attribué ici.",
+                        )
+                        OutlinedTextField(annotationTrack, { annotationTrack = it }, label = { Text("ID annoté (entier positif)") })
+                        OutlinedTextField(
+                            observationQuality,
+                            { observationQuality = it },
+                            label = { Text("Qualité géométrique évaluée (0 à 1)") },
+                        )
+                        Text("Ce score doit suivre votre protocole de validation ; ce n’est pas une probabilité de précision.")
+                        Row {
+                            Checkbox(cameraStationary, { cameraStationary = it })
+                            Text("Caméra fixe pendant toute la séquence de mesure.", modifier = Modifier.weight(1f))
+                        }
+                        OutlinedButton(
+                            enabled =
+                                cameraStationary &&
+                                    annotationTrack.toLongOrNull()?.let { it >= 0 } == true &&
+                                    observationQuality.toDoubleOrNull()?.let { it.isFinite() && it in 0.0..1.0 } == true,
+                            onClick = {
+                                val profile = requireNotNull(calibration)
+                                val calibrationId =
+                                    java.security.MessageDigest
+                                        .getInstance("SHA-256")
+                                        .digest(CalibrationJson.encode(profile).toByteArray())
+                                        .joinToString("") { "%02x".format(it) }
+                                val observation =
+                                    DepthObservation(
+                                        binding.sourceId,
+                                        annotationTrack.toLong(),
+                                        calibrationId,
+                                        timestampUs,
+                                        answer.axialMeters,
+                                        observationQuality.toDouble(),
+                                        true,
+                                        true,
+                                        true,
+                                    )
+                                exportText = SpeedCsv.encodeObservations(listOf(observation))
+                                exportObservation.launch("speedvision-depth-$timestampUs.csv")
+                            },
+                        ) { Text("Exporter cette observation CSV") }
                     }
                     is DistanceEstimate.Rejected -> Text("Mesure rejetée : ${answer.reason}", color = MaterialTheme.colorScheme.error)
                     null -> Text("Aucune distance validée sur cette image.")

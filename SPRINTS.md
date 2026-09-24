@@ -1,6 +1,6 @@
 # Sprints
 
-Cadence indicative : une à deux semaines, réévaluée après chaque revue. Le Sprint 4 est l'incrément actif.
+Cadence indicative : une à deux semaines, réévaluée après chaque revue. Le Sprint 5 est l'incrément actif.
 
 | Sprint | Livrable et dépendances | Porte de sortie |
 |---|---|---|
@@ -15,4 +15,4 @@ Cadence indicative : une à deux semaines, réévaluée après chaque revue. Le 
 | 8 | MetaGlassesVideoSource avec SDK officiel revalidé | Appairage, autorisations, frames, reconnexion, thermique et PTS sur matériel |
 | 9 | Optimisation FP16/INT8, essais terrain, analyse et documentation | Mesures indépendantes reproductibles, limites et énergie rapportées |
 
-Revue obligatoire après chaque sprint. Le Sprint 4 a été autorisé : calibration et distance manuelle implémentées. Les validations terrain du Sprint 2 restent ouvertes et le tracking nécessite aussi des séquences indépendantes. La détection automatique de coins et la validation métrique terrain restent ouvertes. Aucun travail de Sprint 5 n’est inclus. L'absence de matériel ou d'un modèle plaque admissible bloque les stories correspondantes, pas la lecture vidéo indépendante. Le projet global n'est pas terminé avec le Sprint 1, et une CI non exécutée ne vaut pas une CI verte.
+Revue obligatoire après chaque sprint. Le Sprint 5 a été autorisé : vitesse relative sur séries horodatées et export explicite implémentés. Les validations terrain du Sprint 2 restent ouvertes et le tracking nécessite aussi des séquences indépendantes. La détection automatique de coins et la validation métrique terrain restent ouvertes. Aucun travail de Sprint 6 n’est inclus. L'absence de matériel ou d'un modèle plaque admissible bloque les stories correspondantes, pas la lecture vidéo indépendante. Le projet global n'est pas terminé avec le Sprint 1, et une CI non exécutée ne vaut pas une CI verte.
