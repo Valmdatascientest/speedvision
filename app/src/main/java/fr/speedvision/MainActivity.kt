@@ -150,7 +150,7 @@ fun PreviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("SpeedVision", style = MaterialTheme.typography.headlineLarge)
-            Text("LAB / 05     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
+            Text("LAB / 06     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -267,7 +267,7 @@ fun PreviewScreen(
                 Text(
                     String.format(
                         Locale.FRANCE,
-                        "Pipeline CPU p50 / p95 : %.0f / %.0f ms (%d mesures)\n" +
+                        "Détection CPU p50 / p95 : %.0f / %.0f ms (%d mesures)\n" +
                             "Images ignorées après décodage : %d\nTemps depuis décodage : %.0f ms",
                         state.p50,
                         state.p95,
@@ -276,6 +276,21 @@ fun PreviewScreen(
                         state.processingAgeMillis,
                     ),
                 )
+                state.backgroundMotion?.let { motion ->
+                    Text("Fond : ${motion.reason}")
+                    Text(
+                        String.format(
+                            Locale.FRANCE,
+                            "%d/%d points · %d/16 zones · résidu p95 %.2f px (image réduite) · %.0f ms",
+                            motion.inliers,
+                            motion.candidates,
+                            motion.occupiedCells,
+                            motion.residualP95Px,
+                            motion.computeMillis,
+                        ),
+                    )
+                    Text("Rotation et translation métrique non séparées. Caméra immobile non certifiée. Aucun capteur IMU associé.")
+                }
                 state.detections?.let {
                     Text(
                         String.format(

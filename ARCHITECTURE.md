@@ -68,7 +68,7 @@ Les assets absents ou incompatibles donnent un état explicite; jamais une déte
 
 ## Suite planifiée
 
-Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+Sprint 6 : alignement du fond implémenté, compensation métrique non disponible. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
 
 Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.
 
@@ -99,3 +99,9 @@ La régression centrée utilise le temps source, une initialisation médiane des
 L'assistant PnP peut exporter une observation avec son vrai PTS, un ID annoté, une qualité explicitement évaluée et le hash complet du profil de calibration. Il n'attribue pas l'ID du tracker automatiquement et ne collecte pas de série de profondeurs en continu. La liaison automatique détecteur de coins → géométrie → piste → vitesse reste à faire après validation de la géométrie.
 
 Le CSV de résultats indique algorithme, temps source/référence, identité, profondeur, vitesse signée, qualité, effectifs, résidu, latence de calcul et motif. Le temps de calcul ne comprend ni décodage, ni détection, ni annotation; il n'est pas une latence caméra → vitesse. Les fichiers n'apparaissent qu'après confirmation du sélecteur système, sans OCR ni image.
+
+## Mouvement du fond Sprint 6
+
+Le collecteur vidéo possède un `BackgroundMotionEstimator` sérialisé. Il traite les pixels redressés après détection, hors thread UI, puis ne publie que si source, lecture et génération sont encore valides. Le moteur conserve uniquement deux matrices réduites (gris/masque) entre paires. L’annulation du collecteur attend la fin du calcul natif avant libération. Les identités incluent lecture, activation de détection et géométrie; aucun historique ne traverse une reprise.
+
+Le résultat est un diagnostic avec homographie optionnelle en pixels natifs redressés. La compensation `residual(previous,current)` soustrait la prédiction du fond, sans conversion métrique. Le tracker et le moteur de vitesse restent indépendants de cet alignement : une scène mobile cohérente est indiscernable d’un mouvement de caméra dans certains cas. Aucun accès IMU ajouté. Voir [seuils, capteurs et limites](docs/SPRINT_6_REPORT.md).

@@ -62,3 +62,9 @@ Après ajustement : seuil inlier `max(0,06 m, min(0,50 m, 3 × échelle MAD))`, 
 Qualité de sortie = qualité moyenne des inliers × fraction d'inliers / (1 + RMS/0,25 m). Seuil de sortie 0,6. Aucun intervalle de confiance ni probabilité de précision n'en est déduit. Les rejets statistiques conservent la fenêtre pour permettre une récupération sur les observations suivantes, mais ne retournent jamais une ancienne valeur acceptée. Les rejets de continuité/validité effacent l'historique.
 
 Les observations inconnues ou fausses de calibration/identité/mouvement peuvent encore produire une pente numériquement propre : un bon résidu ne prouve pas la validité physique. Le CSV est un contrat de données déclarées, pas un dispositif de certification. La vitesse automatique en direct attend les profondeurs continues et la compensation/validation matérielle.
+
+## Incrément Sprint 6 : fond et observabilité
+
+`background-lk-homography-v1` estime H précédent → courant par coins Shi–Tomasi, flot Lucas–Kanade aller/retour et RANSAC. Masques véhicules aux deux instants, marge de 20 pixels réduits; au moins 30 inliers, 85 % de consensus, 8 cellules sur 16 et résidu p95 ≤ 1,5 pixel. Les images sont réduites à 640 pixels de grand côté. Avec S = diag(sx,sy,1), H_image = S⁻¹ H_réduit S.
+
+Le résidu disponible est p_courant − projection(H_image p_précédent), en pixels. Il ne donne ni translation caméra en mètres, ni vitesse du véhicule. Une homographie de plan mobile ou de scène plane translatée peut être aussi cohérente qu’une rotation; la parallaxe n’est pas toujours observable. `cameraFixed` n’est jamais produit par ce moteur. Aucun IMU associé ni synchronisation capteur inventée. [Détail et sources primaires](SPRINT_6_REPORT.md).

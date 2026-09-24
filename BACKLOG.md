@@ -100,6 +100,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S6-01 · Epic 8 — Camera motion compensation
 
+- État : Flot masqué et alignement en pixels implémentés; validation en cours. Séparation rotation/translation métrique, capteurs synchronisés et essais tête sur matériel restent ouverts. Voir docs/SPRINT_6_REPORT.md.
+
 - Description : Distinguer rotation et mouvement relatif observable.
 - Sprint : 6.
 - Critères d’acceptation : Flot fond masque véhicules; qualité et limites; aucune IMU téléphone assimilée à celle des lunettes.

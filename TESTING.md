@@ -1,3 +1,7 @@
+# Validation Sprint 6
+
+Sept tests instrumentés du vrai OpenCV vérifient alignement immobile/translaté, rotation et échelle native, masque aux deux positions, parallaxe à deux plans, faible texture/couverture, masques absents/saturés et resets temporels/source. Une scène mobile cohérente est explicitement limitée à l’alignement visuel. Commandes inchangées; [résultats et réserves](docs/SPRINT_6_REPORT.md).
+
 # Validation Sprint 5
 
 `./scripts/check.sh` ajoute les tests du moteur de vitesse, les tests CSV/assemblage et le benchmark reproductible des filtres (`domain/build/reports/speed/benchmark.csv`). Le test Android du laboratoire couvre l’exemple explicitement synthétique, le signe/unité, l’annulation du sélecteur d’export et l’effacement. Voir [rapport Sprint 5](docs/SPRINT_5_REPORT.md) et [protocole de séries](testing/speed/README.md).
