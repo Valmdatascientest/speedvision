@@ -1,6 +1,6 @@
 # Sprints
 
-Cadence indicative : une à deux semaines, réévaluée après chaque revue. Le Sprint 2 est l'incrément actif.
+Cadence indicative : une à deux semaines, réévaluée après chaque revue. Le Sprint 4 est l'incrément actif.
 
 | Sprint | Livrable et dépendances | Porte de sortie |
 |---|---|---|

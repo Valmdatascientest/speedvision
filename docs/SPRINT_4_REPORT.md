@@ -21,9 +21,11 @@ Le mode optique doit être connu et fixe. Le descripteur logiciel ne détecte pa
 
 Validation locale du 24 septembre 2026 : **27 tests JVM, 4 tests Python et 17 tests Android réussis**, zéro échec et zéro test Android ignoré. Les tests Android utilisent OpenCV et les poids ONNX réels (`requireModels=true`) sur émulateur Android 15/API 35 ARM64. Le test Compose complète le parcours paramètres → coins → profondeur → effacement.
 
-Formatage, compilation, lint et assemblage des APK réussis. Preuves locales : `.tools/sprint4-check-final.log`, `.tools/sprint4-device-final.log` et rapports XML sous `build`. La CI distante reste à vérifier après publication de la branche.
+Formatage, compilation, lint et assemblage des APK réussis. Preuves locales : `.tools/sprint4-check-final.log`, `.tools/sprint4-device-final.log` et rapports XML sous `build`. Contrôle visuel sur émulateur : assistant, géométrie de l’image arrêtée, zoom et boutons désactivés sans paramètres/coins vérifiés. Captures locales `.tools/sprint4-workbench.png` et `.tools/sprint4-corners.png`, non publiées. La [CI distante du commit `054654e`](https://github.com/Valmdatascientest/speedvision/actions/runs/35979925964) est **verte** : jobs `build` et `device-tests` réussis. Le job optionnel `model-validation` n’a pas été exécuté; la CI générique sans poids ignore les trois tests ONNX qui les exigent. Les nouveaux tests de géométrie et d’assistant y sont exécutés. La suite locale ci-dessus impose aussi les poids ONNX.
 
 Les tests couvrent la transformation native pour les quatre rotations, valeurs non finies et paramètres invalides, ordre/taille des coins, refus de poses ambiguës/négatives, récupération de profondeur avec yaw/roulis/distorsion, crop/rotation, coins bruités, petite plaque/source incompatible, échelle physique erronée, JSON et parcours Compose. La calibration Python est testée sur des projections analytiques à intrinsics connus avec vues réservées. Aucun test synthétique ne constitue une mesure de précision terrain.
+
+L’APK local de debug universel mesure environ 255 Mo avec les poids locaux et les bibliothèques OpenCV multi-architectures. Il n’est pas un paquet de distribution optimisé; les poids restent absents de Git et des builds CI génériques.
 
 ## Critères encore ouverts
 

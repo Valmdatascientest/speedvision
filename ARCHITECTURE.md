@@ -46,7 +46,7 @@ Le fichier conserve les pixels du crop natif, jusqu'à la limite d'entrée 1920 
 
 Chaque réseau reçoit une entrée RGB float32 NCHW 640 × 640, après resize conservant le ratio et padding 114. `Letterbox` conserve les dimensions redimensionnées entières et inverse exactement scale/padding; l'étage plaque ajoute l'origine ROI. Les limites sont clampées, NaN/Inf et géométries dégénérées rejetées. L'overlay utilise le même ajustement `Fit` que l'image : marges et échelle sont identiques.
 
-Le futur moteur géométrique devra transformer K pour le crop/rotation exact et travailler sur la géométrie observée. Il ne peut pas réutiliser sans transformation une calibration native sur l'entrée 640 du réseau. Les cadres du détecteur ne sont pas des coins de plaque.
+Le moteur géométrique ramène les coins observés dans le repère natif de K en inversant crop/rotation. Il ne réutilise pas la calibration native sur l'entrée 640 du réseau. Les cadres du détecteur ne sont pas des coins de plaque.
 
 ## Temps, ressources et cycle de vie
 
@@ -66,7 +66,7 @@ Les assets absents ou incompatibles donnent un état explicite; jamais une déte
 
 ## Suite planifiée
 
-Sprint 4 : calibration, profils physiques et PnP/DistanceEstimator. Sprint 5 : SpeedEstimator robuste et qualité. Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+Sprint 5 : SpeedEstimator robuste et qualité. Sprint 6 : CameraMotionCompensator avec limites d'observabilité. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
 
 Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.
 
