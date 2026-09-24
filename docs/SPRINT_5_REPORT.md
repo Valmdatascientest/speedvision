@@ -36,7 +36,9 @@ Validation locale du 24 septembre 2026 : **39 tests JVM, 5 tests Python et 18 te
 
 Le test Compose du laboratoire charge explicitement l’exemple synthétique, vérifie +18 km/h, ouvre puis annule le sélecteur d’export et efface la série sans conserver de vitesse. Les tests PnP, CameraX, détection réelle et vidéo restent verts.
 
-Formatage, compilation, lint, benchmark et assemblage des APK réussis. Preuves : `.tools/sprint5-check-final.log`, `.tools/sprint5-device.log`, rapports XML et CSV sous `build`. CI distante à vérifier après publication de la branche.
+Formatage, compilation, lint, benchmark et assemblage des APK réussis. Preuves : `.tools/sprint5-check-final.log`, `.tools/sprint5-device.log`, rapports XML et CSV sous `build`. La [CI distante du commit `e682538`](https://github.com/Valmdatascientest/speedvision/actions/runs/36012253018) est **verte** : jobs `build` et `device-tests` réussis. Le job optionnel `model-validation` n’a pas été exécuté; la CI générique sans poids ignore les trois tests ONNX qui les exigent, tandis que la suite locale ci-dessus les exécute.
+
+Contrôle visuel sur émulateur : exemple explicitement synthétique, +18 km/h en rapprochement, temps source 2,000 s et référence centrale 1,400 s affichés séparément, compteurs de rejets et incertitude non quantifiée visibles. Capture locale `.tools/sprint5-lab.png`, non publiée.
 
 ## Réserves
 
