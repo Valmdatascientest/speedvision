@@ -1,6 +1,6 @@
 # Sprints
 
-Cadence indicative : une à deux semaines, réévaluée après chaque revue. Le Sprint 6 est en validation; le démarrage du Sprint 7 est autorisé.
+Cadence indicative : une à deux semaines, réévaluée après chaque revue. L’incrément logiciel du Sprint 6 est validé; le démarrage du Sprint 7 est autorisé.
 
 | Sprint | Livrable et dépendances | Porte de sortie |
 |---|---|---|

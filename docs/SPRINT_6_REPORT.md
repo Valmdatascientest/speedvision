@@ -33,9 +33,15 @@ L'IMU du téléphone n'est jamais assimilée à celle des lunettes. Aucun calcul
 
 ## Validation
 
-En cours : suite locale complète, tests OpenCV instrumentés et CI distante. Les résultats exécutés seront ajoutés avant clôture.
+Validation locale du 24 septembre 2026 : **39 tests JVM, 5 tests Python et 25 tests Android réussis**, zéro échec et zéro test ignoré (`requireModels=true`, Android 15/API 35 ARM64). Formatage, lint, benchmark de vitesse et assemblage des APK réussis. Logs locaux `.tools/sprint6-check.log` et `.tools/sprint6-device.log`; rapports XML dans les répertoires `build`.
+
+[CI distante du commit f80a8c1](https://github.com/Valmdatascientest/speedvision/actions/runs/36053668409) **verte** : jobs `build` et `device-tests` réussis. Le job optionnel `model-validation` est ignoré; la CI générique sans poids ignore les trois tests ONNX qui les exigent. La suite locale ci-dessus les a tous exécutés.
+
+Contrôle visuel sur émulateur : la vidéo locale de smoke test (image publique répétée, aucune vérité terrain) affiche « Alignement visuel uniquement », 250/250 correspondances, 12/16 cellules et 13 ms sur sa dernière paire. Cette durée ponctuelle n’est pas un benchmark téléphone. La vitesse reste « — » et les limites rotation/translation/IMU sont lisibles. Capture locale `.tools/sprint6-diagnostic.png`, non publiée. Après passage en arrière-plan puis retour, le diagnostic est bien effacé.
 
 Sept tests Android réels, sans simulation d'OpenCV : fond immobile/translation, rotation autour de l'axe optique et retour à résolution native, véhicule déplacé avec masques aux deux positions, deux plans en mouvement opposé, manque de texture/masque/couverture, rupture temporelle/source/fermeture, scène mobile cohérente non certifiée immobile. Images synthétiques déterministes; aucune précision terrain déduite.
+
+[Protocole reproductible et essais matériels à compléter](../testing/motion/README.md).
 
 ## Réserves et revue
 
