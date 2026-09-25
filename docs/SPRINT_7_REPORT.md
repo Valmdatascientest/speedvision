@@ -22,11 +22,17 @@ Le bouton de réglages ouvre les réglages audio Android, après coupure de la v
 
 ## Validation
 
-En cours : tests de politique, compilation/lint et tests instrumentés réels. Le résultat exécuté sera ajouté avant publication finale de cette tranche.
+Validation locale du 25 septembre 2026 : **51 tests JVM et 5 tests Python réussis**. Sur Android 15/API 35 ARM64 : **27 tests réussis sur 28, un ignoré**, aucun échec. Le seul ignoré est la parole positive : voix française hors ligne admissible absente de l’émulateur. Les modèles ONNX locaux ont bien été exécutés (`requireModels=true`).
+
+Formatage, compilation, lint, benchmark et assemblage réussis. Logs `.tools/sprint7-check.log` et `.tools/sprint7-device.log`. [CI distante du commit 867207a](https://github.com/Valmdatascientest/speedvision/actions/runs/36095589063) **verte** : jobs `build` et `device-tests` réussis. Le job optionnel `model-validation` est ignoré. La CI générique ne dispose pas des poids ONNX; les tests qui les exigent sont ignorés, contrairement à la suite locale. Le test positif TTS reste conditionné à la présence effective de la voix locale.
 
 Les tests JVM couvrent stabilité, signe, rafales, délai et delta cumulés, changements piste/calibration, rejets, absence de source live, panne de sortie, ordre temporel, gaps, qualité/valeurs invalides et duplication modifiée. Ils contrôlent aussi le dispatch arrêt/parole et l'absence de file de réessai.
 
 Les tests Android initialisent réellement TTS et vérifient désactivation initiale/fermeture. Le test positif de parole est explicitement ignoré si aucune voix française hors ligne admissible n'est installée; `-Pandroid.testInstrumentationRunnerArguments.requireOfflineVoice=true` transforme cette absence en échec. Une soumission et un callback ne démontrent pas que l'utilisateur entend la bonne sortie physique.
+
+Contrôle visuel : motif « Voix française hors ligne absente », interrupteur et test désactivés, absence de mesure live et distinction sortie disponible/active lisibles. Capture locale `.tools/sprint7-voice.png`, non publiée.
+
+[Commandes et protocole matériel](../testing/audio/README.md).
 
 ## Reste à faire dans le Sprint 7
 
