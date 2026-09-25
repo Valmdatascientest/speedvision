@@ -45,10 +45,3 @@ interface VideoSource {
         stop()
     }
 }
-
-/** Future speech adapter. No implementation or speech in Sprint 1. */
-interface AudioOutput {
-    suspend fun speak(text: String)
-
-    fun stop()
-}

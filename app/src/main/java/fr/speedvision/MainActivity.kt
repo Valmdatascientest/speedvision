@@ -57,6 +57,7 @@ import fr.speedvision.presentation.CalibrationWorkbench
 import fr.speedvision.presentation.PreviewState
 import fr.speedvision.presentation.PreviewViewModel
 import fr.speedvision.presentation.SpeedWorkbench
+import fr.speedvision.presentation.VoiceWorkbench
 import java.util.Locale
 import kotlin.math.min
 
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             var calibrationOpen by remember { mutableStateOf(false) }
+            var voiceOpen by remember { mutableStateOf(false) }
             var speedOpen by remember { mutableStateOf(false) }
             val picker =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -98,6 +100,10 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     detection = model::detection,
+                    voice = {
+                        model.stop()
+                        voiceOpen = true
+                    },
                     speed = {
                         model.stop()
                         speedOpen = true
@@ -107,6 +113,7 @@ class MainActivity : ComponentActivity() {
                         calibrationOpen = true
                     },
                 )
+                if (voiceOpen) VoiceWorkbench { voiceOpen = false }
                 if (speedOpen) SpeedWorkbench { speedOpen = false }
                 val image = state.image
                 val binding = state.calibrationBinding
@@ -139,6 +146,7 @@ fun PreviewScreen(
     detection: (Boolean) -> Unit = {},
     calibration: () -> Unit = {},
     speed: () -> Unit = {},
+    voice: () -> Unit = {},
 ) {
     Scaffold { insets ->
         Column(
@@ -150,7 +158,7 @@ fun PreviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("SpeedVision", style = MaterialTheme.typography.headlineLarge)
-            Text("LAB / 06     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
+            Text("LAB / 07     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -308,8 +316,9 @@ fun PreviewScreen(
                         "Un score de détection ne représente pas une confiance de vitesse.",
                 )
             }
+            OutlinedButton(onClick = voice) { Text("Voix / test audio") }
             Text(
-                "Meta et voix : non disponibles dans cette version.",
+                "Voix : test explicite uniquement. Meta : non disponible.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(4.dp))

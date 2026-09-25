@@ -1,3 +1,13 @@
+# Validation Sprint 7 — en cours
+
+Tests JVM de `VoicePolicy` à horloge contrôlée et du dispatch `AudioOutput`. Tests Android du vrai service TTS et de l’écran silencieux à l’ouverture. Le test de parole positive est ignoré si la voix française locale manque; pour l’exiger sur un téléphone préparé :
+
+```sh
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.requireOfflineVoice=true
+```
+
+Ce test ne certifie pas la route ni l’audition sur Bluetooth. [État et protocole matériel](docs/SPRINT_7_REPORT.md).
+
 # Validation Sprint 6
 
 Sept tests instrumentés du vrai OpenCV vérifient alignement immobile/translaté, rotation et échelle native, masque aux deux positions, parallaxe à deux plans, faible texture/couverture, masques absents/saturés et resets temporels/source. Une scène mobile cohérente est explicitement limitée à l’alignement visuel. Commandes inchangées; [résultats et réserves](docs/SPRINT_6_REPORT.md).

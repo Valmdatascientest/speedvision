@@ -68,7 +68,7 @@ Les assets absents ou incompatibles donnent un état explicite; jamais une déte
 
 ## Suite planifiée
 
-Sprint 6 : alignement du fond implémenté, compensation métrique non disponible. Sprint 7 : politique d'annonces et AudioOutput/TTS. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+Sprint 6 : alignement du fond implémenté, compensation métrique non disponible. Sprint 7 : politique d’annonces et AudioOutput/TTS en cours, voir ci-dessous. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
 
 Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.
 
@@ -105,3 +105,11 @@ Le CSV de résultats indique algorithme, temps source/référence, identité, pr
 Le collecteur vidéo possède un `BackgroundMotionEstimator` sérialisé. Il traite les pixels redressés après détection, hors thread UI, puis ne publie que si source, lecture et génération sont encore valides. Le moteur conserve uniquement deux matrices réduites (gris/masque) entre paires. L’annulation du collecteur attend la fin du calcul natif avant libération. Les identités incluent lecture, activation de détection et géométrie; aucun historique ne traverse une reprise.
 
 Le résultat est un diagnostic avec homographie optionnelle en pixels natifs redressés. La compensation `residual(previous,current)` soustrait la prédiction du fond, sans conversion métrique. Le tracker et le moteur de vitesse restent indépendants de cet alignement : une scène mobile cohérente est indiscernable d’un mouvement de caméra dans certains cas. Aucun accès IMU ajouté. Voir [seuils, capteurs et limites](docs/SPRINT_6_REPORT.md).
+
+## Voix Sprint 7 — première tranche
+
+`VoicePolicy` reçoit explicitement une horloge monotone, l’instant d’acquisition associé, le résultat et l’identité. Elle émet `Speak` ou `Silent(stopCurrent, reason)`; elle ne lit ni fichier ni capteur. Mémoire constante, paramètres validés, PTS distincts et contrôle de fraîcheur. Le consommateur futur devra appeler la politique pour chaque rejet et en cas de silence du flux; le flag live ne doit jamais être posé sur une relecture CSV.
+
+`AudioOutput` est désormais séparé du contrat vidéo. Son adaptateur Android est détenu par le dialogue de test, sur le thread principal; les callbacks TTS sont repostés sur ce thread et filtrés par identifiant d’énoncé. Fermeture idempotente, arrêt/désactivation à ON_STOP, interruption sans reprise sur perte de focus ou changement de périphériques disponibles. Initialisation bornée à 10 s, énoncé à 15 s; pas de file de messages périmés. Seule la phrase explicite sans mesure est accessible dans l’interface actuelle. Les seuils du domaine attendent l’intégration des futures mesures live.
+
+Le moteur choisit une voix déclarée française/hors ligne/installée et ne télécharge rien lui-même. Android gère la sortie média; l’inventaire des périphériques n’est pas une preuve de route active. [Réserves et validation](docs/SPRINT_7_REPORT.md).

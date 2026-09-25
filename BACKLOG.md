@@ -110,6 +110,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S7-01 · Epic 9 — Voice feedback
 
+- État : En cours. Politique paramétrable et adaptateur TTS/test explicite implémentés. Raccordement à de vraies mesures live, réglages utilisateur et validation de routage/déconnexion sur matériel encore ouverts. Voir docs/SPRINT_7_REPORT.md.
+
 - Description : Annoncer uniquement les résultats stables.
 - Sprint : 7.
 - Critères d’acceptation : Voix désactivable; seuil/délai/delta configurables; silence si rejet, périmé ou track changé.
