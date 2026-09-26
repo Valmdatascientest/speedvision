@@ -23,3 +23,11 @@ MAE, RMSE, biais (estimation moins référence) et écart-type population sont e
 Réserver les prises de test avant réglage : aucune image d'une même prise/scène ne doit entrer dans entraînement, calibration de quantification ou sélection de seuils. Consigner luminosité, taille de plaque, distance, mouvement, matériel et version. Inclure prises négatives. Aucun corpus terrain n'est livré ici.
 
 `replay_compute_ms` donne les percentiles p50/p95 interpolés du calcul de régression pour toutes les observations. Ce n'est ni la latence caméra→résultat, ni le temps des modèles, ni un débit live. Les mesures énergie/thermique sur Z Flip7 et les comparaisons float/FP16/INT8 restent à réaliser avant sélection d'une optimisation.
+
+## Comparer deux variantes
+
+```sh
+python3 scripts/compare_speed_reports.py baseline.json candidat.json --output comparaison.json
+```
+
+Les deux évaluations doivent porter sur le **même CSV de référence**, vérifié par SHA-256 et effectif. Les deltas sont candidat moins baseline, avec variation de couverture toujours affichée. Une erreur plus faible obtenue en rejetant davantage ne désigne pas automatiquement une meilleure variante. Même à couverture égale, les observations acceptées peuvent différer : ces métriques agrégées ne sont pas une comparaison appariée et ne démontrent aucune significativité statistique. Aucun vainqueur automatique n'est choisi.

@@ -1,6 +1,6 @@
 # Sprints
 
-Cadence indicative : une à deux semaines, réévaluée après chaque revue. L’incrément logiciel du Sprint 6 est validé. Le Sprint 8 est validé localement côté logiciel ; essais matériels ouverts. Le Sprint 9 est actif avec l’évaluation indépendante. Le raccordement vocal live et les essais audio du Sprint 7 restent ouverts.
+Cadence indicative : une à deux semaines, réévaluée après chaque revue. L’incrément logiciel du Sprint 6 est validé. Le Sprint 8 est validé localement côté logiciel ; essais matériels ouverts. Le Sprint 9 est actif avec l’évaluation indépendante, la comparaison de rapports et le benchmark Android opt-in. Le raccordement vocal live et les essais audio du Sprint 7 restent ouverts.
 
 | Sprint | Livrable et dépendances | Porte de sortie |
 |---|---|---|

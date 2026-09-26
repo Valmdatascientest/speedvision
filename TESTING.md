@@ -90,3 +90,7 @@ Projection pinhole/PnP avec distances connues, distorsion, yaw/roulis et coins b
 Voir [protocole et manifeste](testing/README.md). Aucune séquence réelle avec vérité terrain n'a été fournie. Le dataset ne peut pas être honnêtement fabriqué : seule la fixture d'ingestion est synthétique. Aucun MAE terrain, FPS d'inférence ou résultat Meta n'est revendiqué.
 
 Les résultats de cette exécution sont consignés dans [docs/SPRINT_REPORT.md](docs/SPRINT_REPORT.md). Une CI configurée mais non déclenchée n'est pas une CI réussie.
+
+## Sprint 9 — benchmark opt-in
+
+Voir [protocole](testing/performance/README.md). Le test lourd est ignoré sans `runBenchmark=true` ; les tests Python des métriques restent exécutés par `scripts/check.sh`. Les comparaisons de vitesse refusent des références différentes et exposent les variations de couverture.

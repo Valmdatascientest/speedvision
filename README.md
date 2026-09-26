@@ -57,3 +57,5 @@ Traitement des images local, aucun OCR, aucune sauvegarde de vidéo ou de plaque
 Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. Le Sprint 6 est sur `feature/sprint-6-motion`; le Sprint 7 commence sur `feature/sprint-7-voice`; l’intégration Meta est sur `feature/sprint-8-meta`. Les mesures métriques automatiques en direct, la compensation métrique caméra, les annonces live et la validation Meta sur matériel restent à compléter.
 
 Sprint 9 engagé : [évaluation des vitesses](testing/speed/EVALUATION.md) et [rapport de première tranche](docs/SPRINT_9_REPORT.md).
+
+Sprint 9 : [benchmark Android explicite et protocole Z Flip7](testing/performance/README.md).
