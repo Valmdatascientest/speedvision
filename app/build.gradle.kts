@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -5,18 +7,41 @@ plugins {
     kotlin("kapt")
     id("com.google.dagger.hilt.android")
 }
+val metaEnabled = providers.gradleProperty("metaEnabled").orNull == "true"
+val metaProperties =
+    Properties().apply {
+        rootProject
+            .file("local.properties")
+            .takeIf { it.exists() }
+            ?.inputStream()
+            ?.use { load(it) }
+    }
+
 android {
     namespace = "fr.speedvision"
     compileSdk = 35
     defaultConfig {
         applicationId = "fr.speedvision"
-        minSdk = 28
+        minSdk = if (metaEnabled) 29 else 28
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.7.0"
+        versionCode = 8
+        versionName = "0.8.0"
+        buildConfigField("boolean", "META_ENABLED", metaEnabled.toString())
+        manifestPlaceholders["metaApplicationId"] = metaProperties.getProperty("meta.applicationId", "")
+        manifestPlaceholders["metaClientToken"] = metaProperties.getProperty("meta.clientToken", "")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    sourceSets["main"].java.srcDir(if (metaEnabled) "src/meta/java" else "src/noMeta/java")
+    if (metaEnabled) {
+        sourceSets["main"].manifest.srcFile("src/meta/AndroidManifest.xml")
+        sourceSets["androidTest"].java.srcDir("src/metaAndroidTest/java")
+    }
+    // OpenCV and DAT's fbjni bundle libc++; retain one runtime and exercise both integrations in CI.
+    if (metaEnabled) packaging.jniLibs.pickFirsts += "**/libc++_shared.so"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -28,6 +53,10 @@ android {
 kapt { correctErrorTypes = true }
 dependencies {
     implementation(project(":domain"))
+    if (metaEnabled) {
+        implementation("com.meta.wearable:mwdat-core:1.0.0")
+        implementation("com.meta.wearable:mwdat-camera:1.0.0")
+    }
     implementation("org.opencv:opencv:4.12.0")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
     implementation("androidx.camera:camera-camera2:1.4.2")

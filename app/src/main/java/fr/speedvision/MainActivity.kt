@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import fr.speedvision.domain.PlaybackState
 import fr.speedvision.domain.TrackStatus
+import fr.speedvision.meta.MetaSupport
 import fr.speedvision.presentation.CalibrationWorkbench
 import fr.speedvision.presentation.PreviewState
 import fr.speedvision.presentation.PreviewViewModel
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             var calibrationOpen by remember { mutableStateOf(false) }
+            var metaOpen by remember { mutableStateOf(false) }
             var voiceOpen by remember { mutableStateOf(false) }
             var speedOpen by remember { mutableStateOf(false) }
             val picker =
@@ -100,6 +102,10 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     detection = model::detection,
+                    meta = {
+                        model.stop()
+                        metaOpen = true
+                    },
                     voice = {
                         model.stop()
                         voiceOpen = true
@@ -113,6 +119,12 @@ class MainActivity : ComponentActivity() {
                         calibrationOpen = true
                     },
                 )
+                if (metaOpen) {
+                    MetaSupport.Panel({ id ->
+                        model.selectMeta(id)
+                        metaOpen = false
+                    }, { metaOpen = false })
+                }
                 if (voiceOpen) VoiceWorkbench { voiceOpen = false }
                 if (speedOpen) SpeedWorkbench { speedOpen = false }
                 val image = state.image
@@ -147,6 +159,7 @@ fun PreviewScreen(
     calibration: () -> Unit = {},
     speed: () -> Unit = {},
     voice: () -> Unit = {},
+    meta: () -> Unit = {},
 ) {
     Scaffold { insets ->
         Column(
@@ -158,7 +171,7 @@ fun PreviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("SpeedVision", style = MaterialTheme.typography.headlineLarge)
-            Text("LAB / 07     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
+            Text("LAB / 08     ·     ${state.sourceLabel}", color = MaterialTheme.colorScheme.primary)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -250,6 +263,7 @@ fun PreviewScreen(
             OutlinedButton(onClick = calibration, enabled = state.image != null && state.calibrationBinding != null) {
                 Text("Calibration / distance sur image arrêtée")
             }
+            if (BuildConfig.META_ENABLED) OutlinedButton(onClick = meta) { Text("Lunettes Meta") }
             OutlinedButton(onClick = speed) { Text("Laboratoire de vitesse / CSV") }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -318,7 +332,11 @@ fun PreviewScreen(
             }
             OutlinedButton(onClick = voice) { Text("Voix / test audio") }
             Text(
-                "Voix : test explicite uniquement. Meta : non disponible.",
+                if (BuildConfig.META_ENABLED) {
+                    "Voix : test explicite. Meta : connexion via le panneau lunettes."
+                } else {
+                    "Voix : test explicite. SDK Meta non inclus dans ce build."
+                },
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(4.dp))

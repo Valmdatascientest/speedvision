@@ -1,3 +1,5 @@
+> **Actualisation Sprint 8 — 25 septembre 2026 :** DAT 1.0.0 remplace 0.9.0. Un module motion expérimental existe désormais, mais n’est pas intégré ni validé sur nos lunettes. Le build Meta opt-in est développé; la réception matérielle reste ouverte. Voir [META.md](../META.md) et [rapport Sprint 8](SPRINT_8_REPORT.md). Les paragraphes ci-dessous conservent le contexte de la revue initiale.
+
 # Faisabilité — revue du 23 septembre 2026
 
 ## Décision

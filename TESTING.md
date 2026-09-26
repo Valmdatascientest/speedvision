@@ -1,3 +1,14 @@
+# Validation Sprint 8
+
+Trois tests JVM du convertisseur I420 (valeurs/couleur, propriété du buffer et rejets) s’ajoutent à la suite. Le profil Meta ajoute trois tests Android : panneau avant activation, initialisation du vrai SDK sans compagnon et source non inscrite/arrêt. Ces tests s’exécutent sur un émulateur sans lunettes; ils ne prouvent pas la réception matérielle.
+
+```sh
+./gradlew :app:connectedDebugAndroidTest -PmetaEnabled=true
+python3 scripts/audit_android_manifest.py --meta
+```
+
+La CI compile/lint les deux profils et les teste séparément sur émulateur. Le build Meta ne publie que ses rapports. [Protocole Z Flip7 / Wayfarer](testing/meta/README.md), [résultats](docs/SPRINT_8_REPORT.md).
+
 # Validation Sprint 7 — en cours
 
 Tests JVM de `VoicePolicy` à horloge contrôlée et du dispatch `AudioOutput`. Tests Android du vrai service TTS et de l’écran silencieux à l’ouverture. Le test de parole positive est ignoré si la voix française locale manque; pour l’exiger sur un téléphone préparé :

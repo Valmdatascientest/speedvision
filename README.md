@@ -18,6 +18,8 @@ Ouvrir **Laboratoire de vitesse / CSV** pour analyser une série à caméra fixe
 
 Le Sprint 7 est commencé : **Voix / test audio** permet de vérifier le moteur TextToSpeech avec une phrase sans mesure, après activation explicite. Une voix française hors ligne doit être installée dans Android. Les annonces automatiques et les essais Bluetooth matériels restent ouverts. [État et limites](docs/SPRINT_7_REPORT.md).
 
+Le Sprint 8 ajoute un **build Meta explicite** pour connecter les lunettes avec le SDK officiel DAT 1.0.0. Le build habituel conserve son fonctionnement sans SDK. [Configuration du Z Flip7 / Wayfarer, compilation et essais](META.md). La réception sur vos lunettes reste à valider sur matériel.
+
 ## Compiler et tester
 
 JDK 17, SDK 35/build-tools 35.0.0, wrapper Gradle 8.11.1. Définir sdk.dir dans local.properties (non versionné) ou ANDROID_HOME. Installer les dépendances Python de calibration dans `.tools/calibration-env` comme décrit dans [CALIBRATION.md](CALIBRATION.md), ou dans le Python utilisé par le script :
@@ -44,12 +46,14 @@ APK local : `app/build/outputs/apk/debug/app-debug.apk`. Les modèles AGPL ne so
 - [Architecture](ARCHITECTURE.md), [faisabilité Meta](docs/FEASIBILITY.md), [algorithme futur](docs/ALGORITHM.md)
 - [Backlog](BACKLOG.md), [sprints](SPRINTS.md), [tests](TESTING.md), [calibration](CALIBRATION.md)
 - [Audit et versions des modèles](models/README.md), [évaluation détection](testing/detection/README.md), [protocole vitesse terrain](testing/README.md)
-- [Rapport Sprints 0–1](docs/SPRINT_REPORT.md) et [rapport Sprint 2](docs/SPRINT_2_REPORT.md), [rapport Sprint 3](docs/SPRINT_3_REPORT.md), [rapport Sprint 4](docs/SPRINT_4_REPORT.md), [rapport Sprint 5](docs/SPRINT_5_REPORT.md), [rapport Sprint 6](docs/SPRINT_6_REPORT.md), [début du Sprint 7](docs/SPRINT_7_REPORT.md)
+- [Rapport Sprints 0–1](docs/SPRINT_REPORT.md) et [rapport Sprint 2](docs/SPRINT_2_REPORT.md), [rapport Sprint 3](docs/SPRINT_3_REPORT.md), [rapport Sprint 4](docs/SPRINT_4_REPORT.md), [rapport Sprint 5](docs/SPRINT_5_REPORT.md), [rapport Sprint 6](docs/SPRINT_6_REPORT.md), [début du Sprint 7](docs/SPRINT_7_REPORT.md), [rapport Sprint 8](docs/SPRINT_8_REPORT.md)
 
 La profondeur Z = fx W/w exige une pose et une calibration appropriées. Sa dérivée n'est pas une vitesse absolue routière. Un score de détecteur n'est ni une confiance de vitesse ni une précision acquise. Le modèle de plaques doit être évalué sur un corpus indépendant; aucune précision terrain n'est revendiquée.
 
 ## Données et Git
 
-Traitement local, aucun OCR, aucune sauvegarde de vidéo ou de plaque, aucune permission Internet, microphone ou stockage global. Le sélecteur système donne accès au seul fichier choisi; préférer un fichier déjà local pour un essai hors ligne. L'APK n'embarque pas le SDK Meta. Les images publiques de smoke test sont téléchargées uniquement par le script de développement et ne sont pas des captures utilisateur.
+Traitement des images local, aucun OCR, aucune sauvegarde de vidéo ou de plaque. Le build habituel n’a aucune permission Internet, microphone ou stockage global. Le build Meta opt-in ajoute réseau/Bluetooth, avec les collectes optionnelles SDK désactivées; [détails et limites](META.md). Le sélecteur système donne accès au seul fichier choisi; préférer un fichier déjà local pour un essai hors ligne. Le SDK Meta est absent du build habituel et présent uniquement avec `-PmetaEnabled=true`. Les images publiques de smoke test sont téléchargées uniquement par le script de développement et ne sont pas des captures utilisateur.
 
-Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. Le Sprint 6 est sur `feature/sprint-6-motion`; le Sprint 7 commence sur `feature/sprint-7-voice`. Les mesures métriques automatiques en direct, la compensation métrique caméra, les annonces live et Meta restent à compléter.
+Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. Le Sprint 6 est sur `feature/sprint-6-motion`; le Sprint 7 commence sur `feature/sprint-7-voice`; l’intégration Meta est sur `feature/sprint-8-meta`. Les mesures métriques automatiques en direct, la compensation métrique caméra, les annonces live et la validation Meta sur matériel restent à compléter.
+
+Sprint 9 engagé : [évaluation des vitesses](testing/speed/EVALUATION.md) et [rapport de première tranche](docs/SPRINT_9_REPORT.md).

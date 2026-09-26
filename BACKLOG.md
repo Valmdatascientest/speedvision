@@ -120,6 +120,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S8-01 · Epic 10 — Meta integration
 
+- État : Adaptateur DAT 1.0.0 opt-in, parcours connexion/permission et PTS implémentés. Validation logicielle locale réussie; réception réelle, appairage, reconnexion, thermique et compatibilité Z Flip7/Wayfarer restent à valider. Voir docs/SPRINT_8_REPORT.md.
+
 - Description : Recevoir le flux officiel des lunettes.
 - Sprint : 8.
 - Critères d’acceptation : SDK versionné; autorisations; états et erreurs; décodeur/PTS validés; aucun mock en production.
@@ -137,6 +139,8 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 - Definition of Done : DoD commune + preuves des critères/tests ci-dessus dans le rapport de sprint.
 
 ## S9-01 · Epic 12 — Validation
+
+- État : Outil de comparaison CSV et protocole implémentés, tests métriques ajoutés. Acquisition et précision terrain non validées. Voir docs/SPRINT_9_REPORT.md.
 
 - Description : Mesurer l’erreur sur vérité terrain indépendante.
 - Sprint : 9.

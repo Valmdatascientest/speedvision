@@ -17,6 +17,7 @@ import fr.speedvision.domain.TrackingResult
 import fr.speedvision.domain.VehicleTracker
 import fr.speedvision.domain.VideoFrame
 import fr.speedvision.domain.VideoSource
+import fr.speedvision.meta.MetaSupport
 import fr.speedvision.motion.BackgroundMotion
 import fr.speedvision.motion.BackgroundMotionEstimator
 import fr.speedvision.vision.DetectionEngine
@@ -108,6 +109,15 @@ class PreviewViewModel
             attach(factory.camera(owner, rotation, viewModelScope), true)
         }
 
+        fun selectMeta(deviceId: String) {
+            sourceId = "meta:" +
+                java.security.MessageDigest
+                    .getInstance("SHA-256")
+                    .digest(deviceId.toByteArray())
+                    .joinToString("") { "%02x".format(it) }
+            attach(MetaSupport.createSource(viewModelScope, deviceId), false, "LUNETTES META")
+        }
+
         fun cameraDenied() {
             mutableState.update { it.copy(error = "Caméra refusée. Vous pouvez choisir une vidéo locale.") }
         }
@@ -115,6 +125,7 @@ class PreviewViewModel
         private fun attach(
             selectedSource: VideoSource,
             camera: Boolean,
+            label: String = if (camera) "CAMÉRA TÉLÉPHONE" else "VIDÉO LOCALE",
         ) {
             stop()
             source?.close()
@@ -125,7 +136,7 @@ class PreviewViewModel
                 PreviewState(
                     selected = true,
                     camera = camera,
-                    sourceLabel = if (camera) "CAMÉRA TÉLÉPHONE" else "VIDÉO LOCALE",
+                    sourceLabel = label,
                     debug = old.debug,
                     detectionEnabled = old.detectionEnabled,
                 )

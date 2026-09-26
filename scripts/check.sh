@@ -14,3 +14,5 @@ else
     python3 -m unittest discover -s testing/calibration
 fi
 ./gradlew --no-daemon spotlessCheck :domain:test :domain:benchmarkSpeed :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+
+python3 scripts/audit_android_manifest.py

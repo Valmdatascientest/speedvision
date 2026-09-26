@@ -68,7 +68,7 @@ Les assets absents ou incompatibles donnent un état explicite; jamais une déte
 
 ## Suite planifiée
 
-Sprint 6 : alignement du fond implémenté, compensation métrique non disponible. Sprint 7 : politique d’annonces et AudioOutput/TTS en cours, voir ci-dessous. Sprint 8 : adaptateur Meta officiel revalidé. Sprint 9 : optimisation et validation indépendante sur matériel.
+Sprint 6 : alignement du fond implémenté, compensation métrique non disponible. Sprint 7 : politique d’annonces et AudioOutput/TTS en cours, voir ci-dessous. Sprint 8 : adaptateur DAT 1.0.0 opt-in, validation matérielle ouverte. Sprint 9 : optimisation et validation indépendante sur matériel.
 
 Voir [algorithme mathématique](docs/ALGORITHM.md) et [audit modèles](models/README.md). Le runtime ONNX a été choisi ici pour charger les poids réels disponibles sans ajouter une seconde conversion TFLite; ce choix devra être benchmarké face aux alternatives sur téléphone cible.
 
@@ -113,3 +113,11 @@ Le résultat est un diagnostic avec homographie optionnelle en pixels natifs red
 `AudioOutput` est désormais séparé du contrat vidéo. Son adaptateur Android est détenu par le dialogue de test, sur le thread principal; les callbacks TTS sont repostés sur ce thread et filtrés par identifiant d’énoncé. Fermeture idempotente, arrêt/désactivation à ON_STOP, interruption sans reprise sur perte de focus ou changement de périphériques disponibles. Initialisation bornée à 10 s, énoncé à 15 s; pas de file de messages périmés. Seule la phrase explicite sans mesure est accessible dans l’interface actuelle. Les seuils du domaine attendent l’intégration des futures mesures live.
 
 Le moteur choisit une voix déclarée française/hors ligne/installée et ne télécharge rien lui-même. Android gère la sortie média; l’inventaire des périphériques n’est pas une preuve de route active. [Réserves et validation](docs/SPRINT_7_REPORT.md).
+
+## Meta Sprint 8
+
+Le flag Gradle `metaEnabled` choisit `app/src/meta` ou `app/src/noMeta` à compilation, sans réflexion ni API SDK fictive. Le premier contient la dépendance officielle core/camera 1.0.0 et un manifeste explicite; le second n’inclut aucune dépendance Meta. Le profil est audité après fusion. Aucune initialisation SDK au lancement : l’utilisateur l’active dans le panneau dédié après permission Bluetooth.
+
+`MetaGlassesVideoSource` implémente `VideoSource` sur une session à appareil spécifique. Les opérations de session sont sérialisées par Mutex; STOP annule la génération, le `finally` ferme caméra et session. Les données SDK sont copiées avant suspension et les images décodées transitent dans un tampon borné. La conversion I420 est indépendante du SDK et testable en JVM. Les PTS source sont transmis intacts, les images hors contrat refusées. Le ViewModel existant protège la publication et réinitialise tracking/diagnostic/calibration lors du changement de source. L’identifiant appareil est haché pour la liaison de calibration; il ne certifie pas un mode optique ou un firmware inchangé.
+
+Le panneau observe inscription/appareils et rend les autorisations explicites. Il ne conserve aucune Activity dans la source; la session utilise seulement le scope du ViewModel et l’identifiant choisi. Une interruption n’entraîne pas de reconnexion automatique. Aucun FGS, aucun microphone, aucun enregistrement. [Configuration et réserves](META.md).
