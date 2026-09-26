@@ -20,7 +20,7 @@ La CI conserve le build local, ajoute un build/lint Meta et exécute les tests a
 
 Profil Meta : compilation, lint, 54 tests JVM et audit du manifeste fusionné réussis. Sur émulateur API 35 ARM64, 30 tests Android réussis (modèles réels provisionnés), un test vocal ignoré faute de voix française hors ligne. Le test d’export a d’abord échoué à cause d’une fenêtre « System UI ne répond pas » dans l’émulateur ; après redémarrage complet, le test d’origine passe sans modification.
 
-Profil sans SDK : `scripts/check.sh` réussi (format, 54 tests JVM, 11 tests Python dont ceux du Sprint 9, benchmark synthétique, lint, APK et audit du manifeste). Sur le même émulateur : 27 tests Android réussis, un test vocal ignoré. CI distante : à exécuter sur cet incrément.
+Profil sans SDK : `scripts/check.sh` réussi (format, 54 tests JVM, 11 tests Python dont ceux du Sprint 9, benchmark synthétique, lint, APK et audit du manifeste). Sur le même émulateur : 27 tests Android réussis, un test vocal ignoré. CI distante déclenchée sur le commit `4765947` : [exécution 36212743854](https://github.com/Valmdatascientest/speedvision/actions/runs/36212743854). Son résultat n’est pas encore connu ; les résultats ci-dessus sont locaux.
 
 ## Matériel et réserves
 
