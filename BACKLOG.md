@@ -1,6 +1,6 @@
 # Backlog Agile
 
-Sprints 0–1 livrés. Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté. Sprint 4 : calibration et profondeur manuelle implémentées; détection automatique des coins et validation matérielle encore ouvertes. Voir docs/SPRINT_4_REPORT.md. Sprint 5 : moteur temporel et laboratoire CSV implémentés, validation terrain ouverte (docs/SPRINT_5_REPORT.md).
+Sprints 0–1 fermés pour leur portée logicielle et documentaire après revue de clôture (voir [rapport](docs/SPRINT_REPORT.md)). Sprint 2 implémenté; validation sur téléphone et corpus indépendant encore ouverte. Voir docs/SPRINT_2_REPORT.md. Sprint 3 : suivi implémenté. Sprint 4 : calibration et profondeur manuelle implémentées; détection automatique des coins et validation matérielle encore ouvertes. Voir docs/SPRINT_4_REPORT.md. Sprint 5 : moteur temporel et laboratoire CSV implémentés, validation terrain ouverte (docs/SPRINT_5_REPORT.md).
 
 Definition of Done commune : critères satisfaits, implémentation réelle ou limite déclarée, tests pertinents verts, formatage/lint/build propres, revue de confidentialité, docs mises à jour et aucun résultat de précision inventé. Une story avec validation matérielle non réalisée reste à valider.
 
