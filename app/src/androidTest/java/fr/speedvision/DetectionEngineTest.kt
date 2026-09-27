@@ -90,6 +90,37 @@ class DetectionEngineTest {
         }
     }
 
+    @Test fun reusedPreprocessingDoesNotRetainPreviousFrameOrPadding() {
+        requireModels()
+        val image =
+            instrumentation.context.assets
+                .open("detection/bus.jpg")
+                .use { BitmapFactory.decodeStream(it) }
+        val blank = Bitmap.createBitmap(800, 200, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.BLACK) }
+        val detector = OnnxDetector(context, "vehicle.onnx", 80, setOf(2, 3, 5, 7))
+        try {
+            val original = detector.detect(image)
+            assertTrue(original.any { it.classId == 5 })
+            repeat(3) {
+                assertTrue(detector.detect(blank).isEmpty())
+                assertEquals(original, detector.detect(image))
+            }
+            detector.close()
+            detector.close()
+            var refused = false
+            try {
+                detector.detect(image)
+            } catch (_: IllegalStateException) {
+                refused = true
+            }
+            assertTrue("A closed detector must not reuse native buffers", refused)
+        } finally {
+            detector.close()
+            image.recycle()
+            blank.recycle()
+        }
+    }
+
     @Test fun rotationUsesUprightPixelsBeforeInference() {
         val frame = VideoFrame(intArrayOf(Color.RED, Color.GREEN, Color.BLUE, Color.WHITE, Color.YELLOW, Color.BLACK), 2, 3, 0, 90, 0)
         val bitmap = uprightBitmap(frame)

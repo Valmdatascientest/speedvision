@@ -27,6 +27,13 @@ internal class OnnxDetector(
     private val session: OrtSession
     private val inputName: String
 
+    // Owned by this serialized session; fully overwritten for every frame/ROI.
+    private val pixels = IntArray(640 * 640)
+    private val rgb = FloatArray(640 * 640 * 3)
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private var inputBitmap: Bitmap? = null
+    private var closed = false
+
     init {
         val bytes = context.assets.open("models/$asset").use { it.readBytes() }
         session =
@@ -59,29 +66,24 @@ internal class OnnxDetector(
         bitmap: Bitmap,
         roi: Rect = Rect(0, 0, bitmap.width, bitmap.height),
     ): List<Detection> {
+        check(!closed) { "Detector is closed" }
         require(roi.left >= 0 && roi.top >= 0 && roi.right <= bitmap.width && roi.bottom <= bitmap.height && !roi.isEmpty)
         val transform = Letterbox(roi.width(), roi.height(), originX = roi.left, originY = roi.top)
-        val input = Bitmap.createBitmap(640, 640, Bitmap.Config.ARGB_8888)
-        val pixels = IntArray(640 * 640)
-        try {
-            val canvas = Canvas(input)
-            canvas.drawColor(Color.rgb(114, 114, 114))
-            canvas.drawBitmap(
-                bitmap,
-                roi,
-                Rect(
-                    transform.padX,
-                    transform.padY,
-                    transform.padX + transform.resizedWidth,
-                    transform.padY + transform.resizedHeight,
-                ),
-                Paint(Paint.FILTER_BITMAP_FLAG),
-            )
-            input.getPixels(pixels, 0, 640, 0, 0, 640, 640)
-        } finally {
-            input.recycle()
-        }
-        val rgb = FloatArray(pixels.size * 3)
+        val input = inputBitmap ?: Bitmap.createBitmap(640, 640, Bitmap.Config.ARGB_8888).also { inputBitmap = it }
+        val canvas = Canvas(input)
+        canvas.drawColor(Color.rgb(114, 114, 114))
+        canvas.drawBitmap(
+            bitmap,
+            roi,
+            Rect(
+                transform.padX,
+                transform.padY,
+                transform.padX + transform.resizedWidth,
+                transform.padY + transform.resizedHeight,
+            ),
+            paint,
+        )
+        input.getPixels(pixels, 0, 640, 0, 0, 640, 640)
         for (i in pixels.indices) {
             rgb[i] = ((pixels[i] shr 16) and 255) / 255f
             rgb[i + pixels.size] = ((pixels[i] shr 8) and 255) / 255f
@@ -99,6 +101,13 @@ internal class OnnxDetector(
     }
 
     override fun close() {
-        session.close()
+        if (closed) return
+        closed = true
+        try {
+            session.close()
+        } finally {
+            inputBitmap?.recycle()
+            inputBitmap = null
+        }
     }
 }

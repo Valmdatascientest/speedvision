@@ -150,7 +150,7 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S9-02 · Epic 13 — Performance
 
-- État : Benchmark Android opt-in des vrais détecteurs et analyse p50/p95/débit/état thermique implémentés. Baseline Z Flip7, énergie, corpus indépendant et FP16/INT8 restent ouverts. Voir testing/performance/README.md.
+- État : Benchmark Android opt-in et analyse p50/p95/débit/état thermique implémentés. Premières captures CPU et tests des vrais modèles réussis sur Z Flip7 ; réutilisation des buffers testée. Sessions soutenues, énergie, corpus indépendant et FP16/INT8 restent ouverts. Voir testing/performance/README.md.
 
 - Description : Optimiser après benchmark de référence.
 - Sprint : 9.
