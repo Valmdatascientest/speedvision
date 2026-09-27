@@ -140,7 +140,7 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S9-01 · Epic 12 — Validation
 
-- État : Outil de comparaison CSV et protocole implémentés, tests métriques ajoutés. Acquisition et précision terrain non validées. Voir docs/SPRINT_9_REPORT.md.
+- État : Livré côté logiciel : outil de comparaison CSV, protocole, tests métriques et rapports avec couverture/rejets. Acquisition synchronisée et précision terrain restent des validations externes. Voir docs/SPRINT_9_REPORT.md.
 
 - Description : Mesurer l’erreur sur vérité terrain indépendante.
 - Sprint : 9.
@@ -150,7 +150,7 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ## S9-02 · Epic 13 — Performance
 
-- État : Benchmark Android opt-in et analyse p50/p95/débit/état thermique implémentés. Premières captures CPU et tests des vrais modèles réussis sur Z Flip7 ; réutilisation des buffers testée. Sessions soutenues, énergie, corpus indépendant et FP16/INT8 restent ouverts. Voir testing/performance/README.md.
+- État : Livré côté logiciel : benchmark Android opt-in, analyse p50/p95/débit/thermique, comparaison répétable et réutilisation des buffers testés sur Z Flip7. Aucun gain de latence stable n’est revendiqué ; sessions soutenues, énergie, corpus indépendant et FP16/INT8 restent des portes matérielles/scientifiques ouvertes. Voir testing/performance/README.md.
 
 - Description : Optimiser après benchmark de référence.
 - Sprint : 9.

@@ -1,4 +1,4 @@
-# Sprint 9 — première tranche : évaluation reproductible
+# Sprint 9 — évaluation reproductible et benchmark Android
 
 Outil `scripts/evaluate_speed.py` ajouté pour les exports réels du laboratoire. Appariement strict à l'instant de référence de la fenêtre, identité complète, MAE/RMSE/biais/écart-type population, couverture, rejets et prédictions sans référence. JSON avec empreintes des entrées, sans écrasement de fichier. Absence de comparaison représentée par `null`.
 
@@ -25,7 +25,7 @@ Validation locale de l’outil : six tests dédiés réussis, plus le test exist
 - Benchmark instrumenté opt-in réussi sur émulateur API 35 ARM64 : premier appel, un warmup, cinq appels mesurés ; récupération du JSON et analyse réellement exécutées. Aucun modèle de téléphone physique testé à ce stade ; essais ultérieurs ci-dessous. Cette capture courte constitue uniquement un test de l'outillage ; elle ne représente pas un benchmark soutenu.
 - Compilation du nouveau test dans le profil Meta réussie. Exécution sans opt-in vérifiée : aucun nouveau benchmark. CI du commit `cce93ad` : [succès](https://github.com/Valmdatascientest/speedvision/actions/runs/36223878860), quatre jobs verts.
 
-Aucune optimisation FP16/INT8 activée. Les portes matérielles du Sprint 9 restent ouvertes : sessions soutenues sur Z Flip7, corpus indépendant, énergie, thermique et contrôle de précision après optimisation. Le script ne mesure pas l'énergie et son débit n'est pas un FPS caméra.
+Aucune optimisation FP16/INT8 activée. La livraison logicielle du Sprint 9 est complète : évaluation reproductible, comparaison de rapports, benchmark opt-in et réduction des allocations répétées sont documentés et testés. Les portes scientifiques et matérielles restent explicitement séparées : sessions soutenues sur Z Flip7, corpus indépendant, énergie, thermique et contrôle de précision après optimisation. Le script ne mesure pas l'énergie et son débit n'est pas un FPS caméra.
 
 
 ## Troisième tranche — réutilisation du prétraitement
