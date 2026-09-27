@@ -57,6 +57,9 @@ class CalibrationWorkbenchTest {
                 click(Offset((width - 1280 * scale) / 2 + p.first * scale, (height - 720 * scale) / 2 + p.second * scale))
             }
         }
+        compose.onNodeWithTag("select-corner-0").performScrollTo().performClick()
+        compose.onNodeWithTag("move-corner-right").performScrollTo().performClick()
+        compose.onNodeWithText("HG : 381, 305 px").assertExists()
         compose.onNodeWithText("Estimer la profondeur axiale").performScrollTo().performClick()
         compose.waitUntil(10_000) {
             compose

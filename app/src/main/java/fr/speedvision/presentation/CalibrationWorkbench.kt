@@ -81,6 +81,7 @@ fun CalibrationWorkbench(
     var acknowledged by remember { mutableStateOf(false) }
     var calibration by remember { mutableStateOf<CameraCalibration?>(null) }
     var points by remember { mutableStateOf<List<ImagePoint>>(emptyList()) }
+    var selectedPoint by remember { mutableIntStateOf(-1) }
     var result by remember { mutableStateOf<DistanceEstimate?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -93,6 +94,25 @@ fun CalibrationWorkbench(
         calibration = null
         result = null
         revision++
+    }
+
+    fun moveSelected(
+        dx: Int,
+        dy: Int,
+    ) {
+        if (selectedPoint !in points.indices) return
+        points =
+            points.mapIndexed { index, point ->
+                if (index != selectedPoint) {
+                    point
+                } else {
+                    ImagePoint(
+                        (point.x + dx).coerceIn(0.0, (image.width - 1).toDouble()),
+                        (point.y + dy).coerceIn(0.0, (image.height - 1).toDouble()),
+                    )
+                }
+            }
+        invalidate()
     }
     var exportText by remember { mutableStateOf("") }
     var annotationTrack by remember { mutableStateOf("") }
@@ -306,8 +326,18 @@ fun CalibrationWorkbench(
                             val p = ImagePoint(((tap.x - dx) / scale).toDouble(), ((tap.y - dy) / scale).toDouble())
                             if (points.size < 4 && p.x >= 0 && p.y >= 0 && p.x <= image.width - 1 && p.y <= image.height - 1) {
                                 points = points + p
+                                selectedPoint = points.lastIndex
                                 result = null
                                 revision++
+                            } else if (points.size == 4) {
+                                val nearest =
+                                    points.indices.minByOrNull { index ->
+                                        val point = points[index]
+                                        val x = dx + point.x.toFloat() * scale
+                                        val y = dy + point.y.toFloat() * scale
+                                        (x - tap.x) * (x - tap.x) + (y - tap.y) * (y - tap.y)
+                                    }
+                                if (nearest != null) selectedPoint = nearest
                             }
                         }
                     },
@@ -322,7 +352,7 @@ fun CalibrationWorkbench(
                         }) { drawImage(image.asImageBitmap()) }
                         points.forEachIndexed { index, p ->
                             val position = Offset(dx + p.x.toFloat() * scale, dy + p.y.toFloat() * scale)
-                            drawCircle(if (index == 0) Color.Yellow else Color.Cyan, 5.dp.toPx(), position)
+                            drawCircle(if (index == selectedPoint) Color.Yellow else Color.Cyan, 5.dp.toPx(), position)
                             if (index > 0) {
                                 val before = points[index - 1]
                                 drawLine(
@@ -335,9 +365,48 @@ fun CalibrationWorkbench(
                         }
                     }
                 }
-                points.forEachIndexed { i, p -> Text("${listOf("HG", "HD", "BD", "BG")[i]} : ${p.x.toInt()}, ${p.y.toInt()} px") }
+                Text("Sélectionnez un coin puis déplacez-le par pas de 1 px. Les coordonnées sont celles de l’image native.")
+                points.forEachIndexed { i, p ->
+                    OutlinedButton(
+                        onClick = { selectedPoint = i },
+                        modifier = Modifier.testTag("select-corner-$i"),
+                    ) {
+                        Text(
+                            "${if (i == selectedPoint) "▶ " else ""}${listOf(
+                                "HG",
+                                "HD",
+                                "BD",
+                                "BG",
+                            )[i]} : ${p.x.toInt()}, ${p.y.toInt()} px",
+                        )
+                    }
+                }
+                Text(
+                    if (selectedPoint in
+                        points.indices
+                    ) {
+                        "Coin sélectionné : ${listOf("HG", "HD", "BD", "BG")[selectedPoint]}"
+                    } else {
+                        "Aucun coin sélectionné"
+                    },
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(onClick = {
+                        moveSelected(-1, 0)
+                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-left")) { Text("← 1 px") }
+                    OutlinedButton(onClick = {
+                        moveSelected(1, 0)
+                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-right")) { Text("→ 1 px") }
+                    OutlinedButton(onClick = {
+                        moveSelected(0, -1)
+                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-up")) { Text("↑ 1 px") }
+                    OutlinedButton(onClick = {
+                        moveSelected(0, 1)
+                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-down")) { Text("↓ 1 px") }
+                }
                 OutlinedButton(onClick = {
                     points = emptyList()
+                    selectedPoint = -1
                     result = null
                     revision++
                 }) { Text("Effacer les coins") }
