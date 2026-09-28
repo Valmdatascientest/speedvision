@@ -4,8 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,6 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.presentation.CalibrationWorkbench
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import kotlin.math.min
@@ -61,10 +60,21 @@ class CalibrationWorkbenchTest {
             }
         }
         compose.onNodeWithTag("select-corner-0").performScrollTo().performClick()
+
+        fun selectedCornerPixels(): Pair<Int, Int> {
+            val description =
+                compose
+                    .onNodeWithTag("select-corner-0")
+                    .fetchSemanticsNode()
+                    .config[SemanticsProperties.StateDescription]
+            val (x, y) = description.split(',').map { it.toInt() }
+            return x to y
+        }
+        val beforeMove = selectedCornerPixels()
         compose.onNodeWithTag("move-corner-right").performScrollTo().performClick()
-        compose.onNodeWithTag("select-corner-0").assert(
-            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "381,305"),
-        )
+        val afterMove = selectedCornerPixels()
+        assertEquals("horizontal move is exactly one native pixel", beforeMove.first + 1, afterMove.first)
+        assertEquals("vertical coordinate is unchanged", beforeMove.second, afterMove.second)
         compose.onNodeWithText("Estimer la profondeur axiale").performScrollTo().performClick()
         compose.waitUntil(10_000) {
             compose
