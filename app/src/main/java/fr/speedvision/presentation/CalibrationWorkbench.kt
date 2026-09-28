@@ -24,6 +24,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -54,6 +55,7 @@ import fr.speedvision.domain.PlateProfile
 import fr.speedvision.domain.SpeedCsv
 import fr.speedvision.geometry.CalibrationJson
 import fr.speedvision.geometry.DistanceEstimator
+import fr.speedvision.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -92,6 +94,48 @@ fun CalibrationWorkbench(
     var centerX by remember { mutableFloatStateOf(.5f) }
     var centerY by remember { mutableFloatStateOf(.5f) }
     var revision by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(image, binding) {
+        if (BuildConfig.DEMO_CALIBRATION && calibration == null && points.isEmpty()) {
+            val width = image.width.toDouble()
+            val height = image.height.toDouble()
+            val marginX = width * 0.15
+            val marginY = height * 0.15
+            fx = width.toString()
+            fy = width.toString()
+            cx = (width / 2.0).toString()
+            cy = (height / 2.0).toString()
+            distortion = "0,0,0,0,0"
+            provenance = "Profil de démonstration préchargé — non métrologique"
+            rms = "0"
+            plateWidth = "520"
+            plateHeight = "110"
+            profileName = "Profil démonstration 520 × 110 mm"
+            acknowledged = true
+            calibration =
+                CameraCalibration(
+                    binding,
+                    width,
+                    width,
+                    width / 2.0,
+                    height / 2.0,
+                    listOf(0.0, 0.0, 0.0, 0.0, 0.0),
+                    provenance,
+                    0.0,
+                    PlateProfile(profileName, 0.520, 0.110),
+                )
+            points =
+                listOf(
+                    ImagePoint(marginX, marginY),
+                    ImagePoint(width - marginX, marginY),
+                    ImagePoint(width - marginX, height - marginY),
+                    ImagePoint(marginX, height - marginY),
+                )
+            selectedPoint = 0
+            message = "Profil et coins de démonstration préchargés. Résultat non utilisable pour une mesure réelle."
+            revision++
+        }
+    }
 
     fun invalidate() {
         calibration = null
@@ -214,6 +258,12 @@ fun CalibrationWorkbench(
                 Text(
                     "1. Paramètres natifs avant crop/rotation : ${binding.nativeWidth} × ${binding.nativeHeight} px. Utilisez une calibration vérifiée sur des vues indépendantes.",
                 )
+                if (BuildConfig.DEMO_CALIBRATION) {
+                    Text(
+                        "MODE DÉMONSTRATION : calibration et quatre coins préchargés. Les résultats sont volontairement non métrologiques.",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
                 Text(
                     "Crop ${binding.cropLeft},${binding.cropTop} / ${binding.width} × ${binding.height} · rotation ${binding.rotation}°",
                     style = MaterialTheme.typography.bodySmall,

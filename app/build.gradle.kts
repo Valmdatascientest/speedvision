@@ -8,6 +8,7 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 val metaEnabled = providers.gradleProperty("metaEnabled").orNull == "true"
+val demoCalibration = providers.gradleProperty("demoCalibration").orNull == "true"
 val metaProperties =
     Properties().apply {
         rootProject
@@ -27,6 +28,7 @@ android {
         versionCode = 8
         versionName = "0.8.0"
         buildConfigField("boolean", "META_ENABLED", metaEnabled.toString())
+        buildConfigField("boolean", "DEMO_CALIBRATION", demoCalibration.toString())
         manifestPlaceholders["metaApplicationId"] = metaProperties.getProperty("meta.applicationId", "")
         manifestPlaceholders["metaClientToken"] = metaProperties.getProperty("meta.clientToken", "")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
