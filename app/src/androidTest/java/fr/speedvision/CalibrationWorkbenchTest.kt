@@ -3,6 +3,9 @@ package fr.speedvision
 import android.graphics.Bitmap
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -59,7 +62,9 @@ class CalibrationWorkbenchTest {
         }
         compose.onNodeWithTag("select-corner-0").performScrollTo().performClick()
         compose.onNodeWithTag("move-corner-right").performScrollTo().performClick()
-        compose.onNodeWithText("HG : 381, 305 px").assertExists()
+        compose.onNodeWithTag("select-corner-0").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "381,305"),
+        )
         compose.onNodeWithText("Estimer la profondeur axiale").performScrollTo().performClick()
         compose.waitUntil(10_000) {
             compose

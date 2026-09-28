@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -57,6 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /** Frozen-frame tool. Profiles/images never leave the process except an explicit JSON export. */
 @Composable
@@ -112,7 +115,10 @@ fun CalibrationWorkbench(
                     )
                 }
             }
-        invalidate()
+        // Moving an observed corner invalidates only the derived measurement.
+        // The camera calibration remains valid for this image/source binding.
+        result = null
+        revision++
     }
     var exportText by remember { mutableStateOf("") }
     var annotationTrack by remember { mutableStateOf("") }
@@ -367,9 +373,14 @@ fun CalibrationWorkbench(
                 }
                 Text("Sélectionnez un coin puis déplacez-le par pas de 1 px. Les coordonnées sont celles de l’image native.")
                 points.forEachIndexed { i, p ->
+                    val pixelX = p.x.roundToInt()
+                    val pixelY = p.y.roundToInt()
                     OutlinedButton(
                         onClick = { selectedPoint = i },
-                        modifier = Modifier.testTag("select-corner-$i"),
+                        modifier =
+                            Modifier
+                                .testTag("select-corner-$i")
+                                .semantics { stateDescription = "$pixelX,$pixelY" },
                     ) {
                         Text(
                             "${if (i == selectedPoint) "▶ " else ""}${listOf(
@@ -377,7 +388,7 @@ fun CalibrationWorkbench(
                                 "HD",
                                 "BD",
                                 "BG",
-                            )[i]} : ${p.x.toInt()}, ${p.y.toInt()} px",
+                            )[i]} : $pixelX, $pixelY px",
                         )
                     }
                 }
