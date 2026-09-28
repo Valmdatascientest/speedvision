@@ -16,6 +16,60 @@ Après lecture, ouvrir **Calibration / distance sur image arrêtée** pour impor
 
 Ouvrir **Laboratoire de vitesse / CSV** pour analyser une série à caméra fixe, consulter les rejets et exporter les résultats. Un exemple synthétique peut être chargé explicitement. [Schéma CSV, protocole et limites](testing/speed/README.md).
 
+## Fonctionnement de bout en bout
+
+Le chemin de traitement est séparé en sources, perception, géométrie et analyse temporelle. Chaque image conserve sa largeur, sa hauteur, son orientation, son numéro de séquence et son PTS en microsecondes. Le temps d’arrivée et le temps de calcul servent uniquement au diagnostic de performance ; ils ne remplacent jamais le PTS de la vidéo.
+
+```mermaid
+flowchart LR
+    A[Vidéo locale<br/>MediaExtractor + MediaCodec] --> S[VideoSource]
+    B[Caméra téléphone<br/>CameraX latest frame] --> S
+    C[Lunettes Meta<br/>DAT 1.0 opt-in] --> S
+    S --> F[VideoFrame<br/>pixels + PTS + géométrie]
+    F --> D[Détection véhicules<br/>YOLO + NMS]
+    D --> R[ROI plaques<br/>modèle plaque borné]
+    D --> T[Tracker<br/>Kalman + IoU/Hungarian]
+    D --> M[Diagnostic mouvement<br/>flot + homographie pixels]
+    F --> P[Aperçu Compose<br/>image arrêtée]
+    P --> K[Coins manuels<br/>ajustement 1 px]
+    K --> C[Calibration native<br/>fx/fy/cx/cy + distorsion]
+    C --> Z[Pose IPPE/PnP<br/>profondeur axiale Z]
+    T --> O[Observations CSV<br/>PTS + identité + qualité]
+    Z --> O
+    O --> V[Régression Huber<br/>fenêtre temporelle]
+    V --> E[Évaluation indépendante<br/>MAE/RMSE/biais/couverture]
+    V --> W[Voix de test<br/>TTS explicite uniquement]
+```
+
+Le détecteur véhicule limite les classes à voiture, moto, bus et camion. Les plaques sont recherchées dans au plus quatre ROI de véhicules ; une ROI omise est comptée comme omise et non comme une absence de plaque. Le tracker reste indépendant du détecteur : trois observations consécutives confirment une piste, une perte est conservée au plus 500 ms, puis l’identité est expirée.
+
+La calibration est appliquée au repère natif de la source. Les quatre coins sont saisis dans l’ordre haut gauche, haut droit, bas droit, bas gauche. Après sélection, les flèches déplacent un coin d’un pixel natif ; l’affichage arrondit uniquement pour présenter des coordonnées entières, tandis que les calculs géométriques conservent la précision interne. La pose est rejetée si les contrôles de profondeur, reprojection, inclinaison ou ambiguïté échouent.
+
+La profondeur obtenue sur une image arrêtée est exportable comme observation déclarée. Le laboratoire ne prend pas de largeur de boîte comme distance : il exige une profondeur axiale, une identité, une calibration, un PTS, une qualité et une caméra fixe déclarée. La vitesse relative signée est la dérivée robuste de Z ; positive signifie rapprochement. Elle est calculée sur un CSV historique, au centre de la fenêtre, et n’est pas une vitesse routière absolue ni une mesure live.
+
+## Méthode et choix techniques
+
+- **Architecture** : application Kotlin Compose/MVVM/Hilt, domaine Kotlin sans dépendance Android, sources vidéo interchangeables et états explicites `READY`, `PLAYING`, `STOPPED`, `ENDED`, `ERROR`.
+- **Temps et mémoire** : PTS strictement croissants, échantillonnage d’aperçu borné à 10 images/s, buffers SDK copiés avant suspension, annulation structurée et arrêt en arrière-plan. Le prétraitement ONNX réutilise ses tableaux et son bitmap par session ; cette optimisation ne constitue pas une promesse de latence.
+- **Perception** : modèles ONNX versionnés et hashés localement, poids exclus de Git, classes et formats vérifiés à l’ouverture, NMS par classe et budget ROI explicite.
+- **Géométrie** : calibration intrinsèque native, distorsion Brown, pose IPPE/PnP, profondeur Z positive et contrôles de reprojection. Les coins d’une boîte détectée ne sont jamais utilisés comme coins physiques.
+- **Vitesse** : régression Huber pondérée sur timestamps réels, rejets sur piste/calibration/source/gaps invalides, comparaison avec OLS, Kalman, quadratique et consensus dans le benchmark synthétique.
+- **Validation** : tests JVM déterministes, tests Python de schémas et métriques, tests instrumentés Android et CI avec profils sans SDK et Meta. Les mesures terrain doivent provenir d’une référence indépendante tenue à part.
+
+## Actions menées par sprint
+
+- **Sprints 0–1** : faisabilité Meta sourcée, architecture, contrats du domaine, backlog et CI ; lecteur MediaExtractor/MediaCodec, PTS, sélection de fichier, START/STOP, EOF, erreurs et cycle de vie.
+- **Sprint 2** : détection YOLO véhicules, modèle plaque en ROI, CameraX, audit des poids et tests de formats, rotations et latences.
+- **Sprint 3** : tracker Kalman/SORT avec association Hungarian/IoU, confirmation, expiration et réinitialisations par source ou géométrie.
+- **Sprint 4** : assistant de calibration, import/export JSON, coins manuels, ajustement pixel par pixel, pose et profondeur axiale sur image arrêtée.
+- **Sprint 5** : observations CSV strictes, régression Huber, rejets temporels et laboratoire de vitesse hors ligne.
+- **Sprint 6** : flot du fond OpenCV, masque des véhicules, homographie en pixels et diagnostics de couverture/résidu, sans compensation métrique inventée.
+- **Sprint 7** : politique anti-spam et adaptateur TTS français hors ligne, écran de test explicite, arrêt sur perte de focus ou de route audio.
+- **Sprint 8** : intégration DAT 1.0 opt-in, permissions et inscription Meta, flux YUV/PTS strict, arrêt sur déconnexion, manifeste et audit de confidentialité.
+- **Sprint 9** : évaluateur de référence, couverture/rejets, comparaison de rapports, benchmark Android p50/p95/débit/thermique et réutilisation des buffers ; essais CPU sur Z Flip7 documentés sans gain artificiel.
+
+Les détails, commandes et limites de chaque étape sont dans [BACKLOG.md](BACKLOG.md), [SPRINTS.md](SPRINTS.md) et les [rapports de sprint](docs/).
+
 Le Sprint 7 est commencé : **Voix / test audio** permet de vérifier le moteur TextToSpeech avec une phrase sans mesure, après activation explicite. Une voix française hors ligne doit être installée dans Android. Les annonces automatiques et les essais Bluetooth matériels restent ouverts. [État et limites](docs/SPRINT_7_REPORT.md).
 
 Le Sprint 8 ajoute un **build Meta explicite** pour connecter les lunettes avec le SDK officiel DAT 1.0.0. Le build habituel conserve son fonctionnement sans SDK. [Configuration du Z Flip7 / Wayfarer, compilation et essais](META.md). La réception sur vos lunettes reste à valider sur matériel.
@@ -46,7 +100,7 @@ APK local : `app/build/outputs/apk/debug/app-debug.apk`. Les modèles AGPL ne so
 - [Architecture](ARCHITECTURE.md), [faisabilité Meta](docs/FEASIBILITY.md), [algorithme futur](docs/ALGORITHM.md)
 - [Backlog](BACKLOG.md), [sprints](SPRINTS.md), [tests](TESTING.md), [calibration](CALIBRATION.md)
 - [Audit et versions des modèles](models/README.md), [évaluation détection](testing/detection/README.md), [protocole vitesse terrain](testing/README.md)
-- [Rapport Sprints 0–1](docs/SPRINT_REPORT.md) et [rapport Sprint 2](docs/SPRINT_2_REPORT.md), [rapport Sprint 3](docs/SPRINT_3_REPORT.md), [rapport Sprint 4](docs/SPRINT_4_REPORT.md), [rapport Sprint 5](docs/SPRINT_5_REPORT.md), [rapport Sprint 6](docs/SPRINT_6_REPORT.md), [début du Sprint 7](docs/SPRINT_7_REPORT.md), [rapport Sprint 8](docs/SPRINT_8_REPORT.md)
+- [Rapport Sprints 0–1](docs/SPRINT_REPORT.md) et [rapport Sprint 2](docs/SPRINT_2_REPORT.md), [rapport Sprint 3](docs/SPRINT_3_REPORT.md), [rapport Sprint 4](docs/SPRINT_4_REPORT.md), [rapport Sprint 5](docs/SPRINT_5_REPORT.md), [rapport Sprint 6](docs/SPRINT_6_REPORT.md), [début du Sprint 7](docs/SPRINT_7_REPORT.md), [rapport Sprint 8](docs/SPRINT_8_REPORT.md), [rapport Sprint 9](docs/SPRINT_9_REPORT.md)
 
 La profondeur Z = fx W/w exige une pose et une calibration appropriées. Sa dérivée n'est pas une vitesse absolue routière. Un score de détecteur n'est ni une confiance de vitesse ni une précision acquise. Le modèle de plaques doit être évalué sur un corpus indépendant; aucune précision terrain n'est revendiquée.
 
@@ -56,6 +110,6 @@ Traitement des images local, aucun OCR, aucune sauvegarde de vidéo ou de plaque
 
 Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. Le Sprint 6 est sur `feature/sprint-6-motion`; le Sprint 7 commence sur `feature/sprint-7-voice`; l’intégration Meta est sur `feature/sprint-8-meta`. Les mesures métriques automatiques en direct, la compensation métrique caméra, les annonces live et la validation Meta sur matériel restent à compléter.
 
-Sprint 9 engagé : [évaluation des vitesses](testing/speed/EVALUATION.md) et [rapport de première tranche](docs/SPRINT_9_REPORT.md).
+Sprint 9 livré côté logiciel : [évaluation des vitesses](testing/speed/EVALUATION.md), [benchmark Android](testing/performance/README.md) et [rapport](docs/SPRINT_9_REPORT.md).
 
 Sprint 9 : [benchmark Android explicite et protocole Z Flip7](testing/performance/README.md).
