@@ -7,7 +7,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -455,18 +457,32 @@ fun CalibrationWorkbench(
                     },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(onClick = {
-                        moveSelected(-1, 0)
-                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-left")) { Text("← 1 px") }
-                    OutlinedButton(onClick = {
-                        moveSelected(1, 0)
-                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-right")) { Text("→ 1 px") }
-                    OutlinedButton(onClick = {
-                        moveSelected(0, -1)
-                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-up")) { Text("↑ 1 px") }
-                    OutlinedButton(onClick = {
-                        moveSelected(0, 1)
-                    }, enabled = selectedPoint in points.indices, modifier = Modifier.testTag("move-corner-down")) { Text("↓ 1 px") }
+                    val arrowButtonModifier = Modifier.height(36.dp)
+                    val arrowPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                    OutlinedButton(
+                        onClick = { moveSelected(-1, 0) },
+                        enabled = selectedPoint in points.indices,
+                        modifier = arrowButtonModifier.testTag("move-corner-left"),
+                        contentPadding = arrowPadding,
+                    ) { Text("←") }
+                    OutlinedButton(
+                        onClick = { moveSelected(1, 0) },
+                        enabled = selectedPoint in points.indices,
+                        modifier = arrowButtonModifier.testTag("move-corner-right"),
+                        contentPadding = arrowPadding,
+                    ) { Text("→") }
+                    OutlinedButton(
+                        onClick = { moveSelected(0, -1) },
+                        enabled = selectedPoint in points.indices,
+                        modifier = arrowButtonModifier.testTag("move-corner-up"),
+                        contentPadding = arrowPadding,
+                    ) { Text("↑") }
+                    OutlinedButton(
+                        onClick = { moveSelected(0, 1) },
+                        enabled = selectedPoint in points.indices,
+                        modifier = arrowButtonModifier.testTag("move-corner-down"),
+                        contentPadding = arrowPadding,
+                    ) { Text("↓") }
                 }
                 OutlinedButton(onClick = {
                     points = emptyList()
@@ -551,6 +567,7 @@ fun CalibrationWorkbench(
                     is DistanceEstimate.Rejected -> Text("Mesure rejetée : ${answer.reason}", color = MaterialTheme.colorScheme.error)
                     null -> Text("Aucune distance validée sur cette image.")
                 }
+                Spacer(Modifier.height(48.dp))
             }
         }
     }
