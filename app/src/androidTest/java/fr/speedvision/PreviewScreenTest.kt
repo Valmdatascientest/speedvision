@@ -21,7 +21,7 @@ class PreviewScreenTest {
         compose.onNodeWithText("Vitesse relative : —").assertExists()
     }
 
-    @Test fun trackingStatusDoesNotEnableUnimplementedMeasurements() {
+    @Test fun trackingStatusKeepsLiveMeasurementGated() {
         val tracks =
             listOf(
                 VehicleTrack(12, PixelBox(0f, 0f, 40f, 40f), 2, TrackStatus.CONFIRMED, 0, 100_000),
@@ -32,6 +32,6 @@ class PreviewScreenTest {
         }
         compose.onNodeWithText("Suivi : 1 confirmée(s) · 1 perdue(s)").assertExists()
         compose.onNodeWithText("Vitesse relative : —").assertExists()
-        compose.onNodeWithText("Distance : —     ·     Confiance : —").assertExists()
+        compose.onNodeWithText("Distance : — · NO_DATA", substring = true).assertExists()
     }
 }

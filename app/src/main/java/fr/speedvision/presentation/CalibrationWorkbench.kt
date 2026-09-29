@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import fr.speedvision.BuildConfig
 import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.domain.CameraCalibration
 import fr.speedvision.domain.DepthObservation
@@ -55,7 +56,6 @@ import fr.speedvision.domain.PlateProfile
 import fr.speedvision.domain.SpeedCsv
 import fr.speedvision.geometry.CalibrationJson
 import fr.speedvision.geometry.DistanceEstimator
-import fr.speedvision.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,6 +70,7 @@ fun CalibrationWorkbench(
     binding: CalibrationBinding,
     timestampUs: Long,
     close: () -> Unit,
+    applied: (CameraCalibration) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -343,7 +344,7 @@ fun CalibrationWorkbench(
                     invalidate()
                     message =
                         runCatching {
-                            calibration =
+                            val profile =
                                 CameraCalibration(
                                     binding,
                                     fx.toDouble(),
@@ -355,6 +356,8 @@ fun CalibrationWorkbench(
                                     rms.toDouble(),
                                     PlateProfile(profileName, plateWidth.toDouble() / 1000, plateHeight.toDouble() / 1000),
                                 )
+                            calibration = profile
+                            applied(profile)
                             "Profil appliqué à cette source et ce mode."
                         }.getOrElse { "Paramètres invalides : vérifiez les valeurs, unités et RMS." }
                 }) { Text("Appliquer la calibration") }

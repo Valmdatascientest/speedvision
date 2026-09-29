@@ -52,6 +52,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import fr.speedvision.domain.PlaybackState
+import fr.speedvision.domain.SpeedEstimate
 import fr.speedvision.domain.TrackStatus
 import fr.speedvision.meta.MetaSupport
 import fr.speedvision.presentation.CalibrationWorkbench
@@ -101,6 +102,7 @@ class MainActivity : ComponentActivity() {
                             cameraPermission.launch(Manifest.permission.CAMERA)
                         }
                     },
+                    cameraFixed = model::cameraFixed,
                     detection = model::detection,
                     meta = {
                         model.stop()
@@ -130,7 +132,7 @@ class MainActivity : ComponentActivity() {
                 val image = state.image
                 val binding = state.calibrationBinding
                 if (calibrationOpen && image != null && binding != null) {
-                    CalibrationWorkbench(image, binding, state.ptsUs) { calibrationOpen = false }
+                    CalibrationWorkbench(image, binding, state.ptsUs, { calibrationOpen = false }, model::applyCalibration)
                 }
             }
         }
@@ -155,6 +157,7 @@ fun PreviewScreen(
     stop: () -> Unit,
     debug: (Boolean) -> Unit,
     camera: () -> Unit = {},
+    cameraFixed: (Boolean) -> Unit = {},
     detection: (Boolean) -> Unit = {},
     calibration: () -> Unit = {},
     speed: () -> Unit = {},
@@ -267,10 +270,48 @@ fun PreviewScreen(
             OutlinedButton(onClick = speed) { Text("Laboratoire de vitesse / CSV") }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
-                    Text("Distance : —     ·     Confiance : —")
-                    Text("Distance manuelle dans l’assistant ; vitesse sur séries dans le laboratoire. Pas de vitesse en direct.")
+                    when (val live = state.liveSpeed) {
+                        is SpeedEstimate.Accepted -> {
+                            Text(
+                                String.format(Locale.FRANCE, "Vitesse relative : %+.1f km/h", live.closingKmh),
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                            Text(
+                                String.format(
+                                    Locale.FRANCE,
+                                    "Distance : %.2f m · Qualité : %.2f",
+                                    live.depthAtReferenceMeters,
+                                    live.qualityScore,
+                                ),
+                            )
+                        }
+                        is SpeedEstimate.Rejected -> {
+                            Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                "Distance : ${state.liveDepthMeters?.let {
+                                    String.format(
+                                        Locale.FRANCE,
+                                        "%.2f m",
+                                        it,
+                                    )
+                                } ?: "—"} · ${live.reason}",
+                            )
+                        }
+                    }
+                    Text(
+                        if (state.cameraCalibration ==
+                            null
+                        ) {
+                            "Appliquez une calibration pour activer la mesure live."
+                        } else {
+                            "La vitesse live exige une caméra fixe déclarée et une piste stable."
+                        },
+                    )
                 }
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Caméra fixe déclarée")
+                Switch(checked = state.cameraFixed, onCheckedChange = cameraFixed)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Diagnostic vidéo")

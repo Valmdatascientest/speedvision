@@ -10,10 +10,17 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.speedvision.di.VideoSourceFactory
 import fr.speedvision.domain.CalibrationBinding
+import fr.speedvision.domain.CameraCalibration
+import fr.speedvision.domain.DepthObservation
 import fr.speedvision.domain.DetectionResult
 import fr.speedvision.domain.LatencyWindow
 import fr.speedvision.domain.PlaybackState
+import fr.speedvision.domain.SpeedEstimate
+import fr.speedvision.domain.SpeedEstimator
+import fr.speedvision.domain.SpeedRejection
+import fr.speedvision.domain.TrackStatus
 import fr.speedvision.domain.TrackingResult
+import fr.speedvision.domain.VehicleSizeDepthEstimator
 import fr.speedvision.domain.VehicleTracker
 import fr.speedvision.domain.VideoFrame
 import fr.speedvision.domain.VideoSource
@@ -56,6 +63,10 @@ data class PreviewState(
     val samples: Int = 0,
     val skipped: Long = 0,
     val processingAgeMillis: Double = 0.0,
+    val cameraCalibration: CameraCalibration? = null,
+    val cameraFixed: Boolean = false,
+    val liveDepthMeters: Double? = null,
+    val liveSpeed: SpeedEstimate = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
 )
 
 internal fun uprightBitmap(frame: VideoFrame): Bitmap {
@@ -81,8 +92,31 @@ class PreviewViewModel
         private var statusJob: Job? = null
         private var run = 0L
         private val tracker = VehicleTracker()
+        private val liveSpeedEstimator = SpeedEstimator()
         private var detectionEpoch = 0L
         private var frameGeometry: Pair<fr.speedvision.domain.FrameGeometry, Int>? = null
+
+        fun applyCalibration(calibration: CameraCalibration) {
+            liveSpeedEstimator.reset()
+            mutableState.update {
+                it.copy(
+                    cameraCalibration = calibration,
+                    liveDepthMeters = null,
+                    liveSpeed = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
+                )
+            }
+        }
+
+        fun cameraFixed(fixed: Boolean) {
+            if (!fixed) liveSpeedEstimator.reset()
+            mutableState.update {
+                it.copy(
+                    cameraFixed = fixed,
+                    liveDepthMeters = null,
+                    liveSpeed = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
+                )
+            }
+        }
 
         private fun resetTracking() {
             detectionEpoch++
@@ -206,6 +240,63 @@ class PreviewViewModel
                                 if (frameGeometry != geometry) tracker.reset()
                                 frameGeometry = geometry
                                 val tracking = result?.let { tracker.update(frame.presentationTimeUs, bitmap.width, bitmap.height, it) }
+                                val currentBinding =
+                                    CalibrationBinding(
+                                        sourceId,
+                                        frame.geometry.nativeWidth,
+                                        frame.geometry.nativeHeight,
+                                        frame.geometry.cropLeft,
+                                        frame.geometry.cropTop,
+                                        frame.width,
+                                        frame.height,
+                                        frame.rotationDegrees,
+                                    )
+                                val currentState = mutableState.value
+                                val liveCandidate =
+                                    if (currentState.cameraFixed && currentState.cameraCalibration?.binding == currentBinding) {
+                                        val track =
+                                            tracking?.tracks?.firstOrNull {
+                                                it.status == TrackStatus.CONFIRMED && it.detectionIndex != null
+                                            }
+                                        val detection = track?.detectionIndex?.let { result?.vehicles?.getOrNull(it) }
+                                        val profile =
+                                            detection?.let { d ->
+                                                VehicleSizeDepthEstimator.defaultProfiles.firstOrNull { it.classId == d.classId }
+                                            }
+                                        if (track != null && detection != null && profile != null) {
+                                            VehicleSizeDepthEstimator
+                                                .estimate(currentState.cameraCalibration, detection, profile)
+                                                ?.let { depth ->
+                                                    val calibration = requireNotNull(currentState.cameraCalibration)
+                                                    val calibrationId =
+                                                        java.security.MessageDigest
+                                                            .getInstance("SHA-256")
+                                                            .digest(
+                                                                fr.speedvision.geometry.CalibrationJson
+                                                                    .encode(calibration)
+                                                                    .toByteArray(),
+                                                            ).joinToString("") { "%02x".format(it) }
+                                                    val observation =
+                                                        DepthObservation(
+                                                            sourceId,
+                                                            track.id,
+                                                            calibrationId,
+                                                            frame.presentationTimeUs,
+                                                            depth.axialMeters,
+                                                            depth.quality,
+                                                            true,
+                                                            true,
+                                                            true,
+                                                        )
+                                                    val estimate = liveSpeedEstimator.add(observation)
+                                                    depth to estimate
+                                                }
+                                        } else {
+                                            null
+                                        }
+                                    } else {
+                                        null
+                                    }
                                 val now = SystemClock.elapsedRealtimeNanos()
                                 val count = mutableState.value.frameCount + 1
                                 if (firstNanos == 0L) firstNanos = now
@@ -216,17 +307,9 @@ class PreviewViewModel
                                 mutableState.update {
                                     it.copy(
                                         image = bitmap,
-                                        calibrationBinding =
-                                            CalibrationBinding(
-                                                sourceId,
-                                                frame.geometry.nativeWidth,
-                                                frame.geometry.nativeHeight,
-                                                frame.geometry.cropLeft,
-                                                frame.geometry.cropTop,
-                                                frame.width,
-                                                frame.height,
-                                                frame.rotationDegrees,
-                                            ),
+                                        calibrationBinding = currentBinding,
+                                        liveDepthMeters = liveCandidate?.first?.axialMeters,
+                                        liveSpeed = liveCandidate?.second ?: it.liveSpeed,
                                         frameCount = count,
                                         ptsUs = frame.presentationTimeUs,
                                         fps = if (duration > 0) (count - 1) / duration else 0.0,
@@ -261,6 +344,9 @@ class PreviewViewModel
                     fps = 0.0,
                     image = null,
                     calibrationBinding = null,
+                    cameraCalibration = null,
+                    liveDepthMeters = null,
+                    liveSpeed = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
                     error = null,
                     detections = null,
                     tracking = null,
