@@ -271,6 +271,21 @@ fun CalibrationWorkbench(
                     "Crop ${binding.cropLeft},${binding.cropTop} / ${binding.width} × ${binding.height} · rotation ${binding.rotation}°",
                     style = MaterialTheme.typography.bodySmall,
                 )
+                OutlinedButton(onClick = {
+                    fx = image.width.toString()
+                    fy = image.width.toString()
+                    cx = (image.width / 2.0).toString()
+                    cy = (image.height / 2.0).toString()
+                    distortion = "0,0,0,0,0"
+                    provenance = "Initialisation approximative — à remplacer par une calibration vérifiée"
+                    rms = "2"
+                    plateWidth = "520"
+                    plateHeight = "110"
+                    profileName = "Profil approximatif 520 × 110 mm"
+                    acknowledged = false
+                    invalidate()
+                    message = "Paramètres préremplis. Ils ne conviennent pas à une mesure terrain sans validation indépendante."
+                }) { Text("Préremplir une calibration approximative") }
                 OutlinedButton(
                     onClick = { import.launch(arrayOf("application/json", "text/plain")) },
                     enabled = !busy,
