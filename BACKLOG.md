@@ -14,7 +14,7 @@ Definition of Done commune : critères satisfaits, implémentation réelle ou li
 
 ### S10-02 · Profondeurs multi-images en aperçu
 
-- État : À faire.
+- État : Première tranche livrée : les pistes confirmées peuvent alimenter `SpeedEstimator` avec la profondeur par largeur véhicule, sous calibration et caméra fixe déclarée. Comparaison plaque/véhicule et validation terrain restent ouvertes.
 - Description : rattacher une profondeur validée à chaque piste confirmée, utiliser les PTS source et alimenter `SpeedEstimator` après une fenêtre stable.
 - Critères : identité/calibration constantes, caméra fixe déclarée et contrôles de fraîcheur ; rejet visible sinon.
 

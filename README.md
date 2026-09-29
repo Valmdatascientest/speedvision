@@ -1,6 +1,6 @@
 # SpeedVision
 
-Prototype Android expérimental d'estimation future de **vitesse relative axiale** à partir de la géométrie d'une plaque connue. Le laboratoire calcule une vitesse relative sur séries de profondeur horodatées. Le Sprint 6 ajoute un **diagnostic du mouvement du fond**, sans certification de caméra immobile ni compensation métrique. La profondeur reste manuelle sur image arrêtée, avec calibration connue. **Aucune vitesse automatique n’est mesurée sur l’aperçu vidéo.**
+Prototype Android expérimental d'estimation de **vitesse relative axiale** à partir d'une plaque connue ou, en secours, de la largeur moyenne d'un véhicule. Le laboratoire calcule une vitesse relative sur séries de profondeur horodatées. L'aperçu peut maintenant afficher une estimation live lorsque calibration, piste, caméra fixe et fenêtre temporelle sont valides. Le résultat reste expérimental et n'est pas une vitesse routière certifiée.
 
 ## Utiliser
 
@@ -110,7 +110,7 @@ La profondeur Z = fx W/w exige une pose et une calibration appropriées. Sa dér
 
 Traitement des images local, aucun OCR, aucune sauvegarde de vidéo ou de plaque. Le build habituel n’a aucune permission Internet, microphone ou stockage global. Le build Meta opt-in ajoute réseau/Bluetooth, avec les collectes optionnelles SDK désactivées; [détails et limites](META.md). Le sélecteur système donne accès au seul fichier choisi; préférer un fichier déjà local pour un essai hors ligne. Le SDK Meta est absent du build habituel et présent uniquement avec `-PmetaEnabled=true`. Les images publiques de smoke test sont téléchargées uniquement par le script de développement et ne sont pas des captures utilisateur.
 
-Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. Le Sprint 6 est sur `feature/sprint-6-motion`; le Sprint 7 commence sur `feature/sprint-7-voice`; l’intégration Meta est sur `feature/sprint-8-meta`. Les mesures métriques automatiques en direct, la compensation métrique caméra, les annonces live et la validation Meta sur matériel restent à compléter.
+Dépôt : [Valmdatascientest/speedvision](https://github.com/Valmdatascientest/speedvision). main stable, develop intégration, feature/*, fix/*, test/*. La première tranche de vitesse live du Sprint 10 est intégrée sur le téléphone ; la compensation métrique caméra, les annonces live et la validation Meta sur matériel restent à compléter.
 
 Sprint 9 livré côté logiciel : [évaluation des vitesses](testing/speed/EVALUATION.md), [benchmark Android](testing/performance/README.md) et [rapport](docs/SPRINT_9_REPORT.md).
 
