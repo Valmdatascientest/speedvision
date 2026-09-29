@@ -47,6 +47,8 @@ La calibration est appliquée au repère natif de la source. Les quatre coins so
 
 La profondeur obtenue sur une image arrêtée est exportable comme observation déclarée. Le laboratoire ne prend pas de largeur de boîte comme distance : il exige une profondeur axiale, une identité, une calibration, un PTS, une qualité et une caméra fixe déclarée. La vitesse relative signée est la dérivée robuste de Z ; positive signifie rapprochement. Elle est calculée sur un CSV historique, au centre de la fenêtre, et n’est pas une vitesse routière absolue ni une mesure live.
 
+Le Sprint 10 prépare une profondeur de secours par largeur moyenne de véhicule lorsque la plaque est trop petite. Cette voie reste un a priori de classe, avec une qualité dégradée et des rejets conservateurs ; elle ne remplace pas la pose par plaque et ne peut devenir une vitesse live qu’après validation de la calibration, de la piste, de la caméra et d’un corpus indépendant. Voir le [plan du Sprint 10](docs/SPRINT_10_PLAN.md).
+
 ## Méthode et choix techniques
 
 - **Architecture** : application Kotlin Compose/MVVM/Hilt, domaine Kotlin sans dépendance Android, sources vidéo interchangeables et états explicites `READY`, `PLAYING`, `STOPPED`, `ENDED`, `ERROR`.

@@ -4,6 +4,26 @@ Sprints 0–1 fermés pour leur portée logicielle et documentaire après revue 
 
 Definition of Done commune : critères satisfaits, implémentation réelle ou limite déclarée, tests pertinents verts, formatage/lint/build propres, revue de confidentialité, docs mises à jour et aucun résultat de précision inventé. Une story avec validation matérielle non réalisée reste à valider.
 
+## Sprint 10 — profondeur live et calibration guidée
+
+### S10-01 · Profondeur de secours par taille de véhicule
+
+- État : Contrat de domaine et profils de largeur moyenne ajoutés ; intégration au flux live et validation indépendante restent ouvertes.
+- Règle : ce fallback est une estimation de prior, avec qualité dégradée et seuil de taille minimale. Il ne doit jamais être présenté comme une mesure plaque/PnP.
+- Tests : largeur connue, classe incompatible, détection trop petite, valeurs hors domaine.
+
+### S10-02 · Profondeurs multi-images en aperçu
+
+- État : À faire.
+- Description : rattacher une profondeur validée à chaque piste confirmée, utiliser les PTS source et alimenter `SpeedEstimator` après une fenêtre stable.
+- Critères : identité/calibration constantes, caméra fixe déclarée et contrôles de fraîcheur ; rejet visible sinon.
+
+### S10-03 · Calibration guidée
+
+- État : À faire.
+- Description : réduire la saisie à un parcours guidé (géométrie source, mire ou profil importé, contrôle de qualité, quatre coins facultatifs selon le mode).
+- Limite : aucune calibration automatique ne doit prétendre connaître fx/fy ou la taille réelle d’un véhicule sans référence indépendante.
+
 ## S0-01 · Epic 0 — Fondation
 
 - Description : Étudier faisabilité et définir les contrats.
