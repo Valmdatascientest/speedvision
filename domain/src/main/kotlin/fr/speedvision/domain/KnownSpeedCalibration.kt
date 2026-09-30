@@ -107,21 +107,30 @@ object KnownSpeedCalibrationEngine {
                 .firstOrNull { abs(it) > MONOTONIC_TOLERANCE_METERS }
                 ?.let(::sign)
                 ?: 0.0
-        val reversals =
-            ordered.zipWithNext().count { (previous, current) ->
-                direction * (current.depthMeters - previous.depthMeters) < -MONOTONIC_TOLERANCE_METERS
+        val monotonic =
+            if (direction == 0.0) {
+                ordered
+            } else {
+                buildList {
+                    ordered.forEach { observation ->
+                        val previous = lastOrNull()
+                        if (previous == null || direction * (observation.depthMeters - previous.depthMeters) >= -MONOTONIC_TOLERANCE_METERS) {
+                            add(observation)
+                        }
+                    }
+                }
             }
-        if (reversals > 0) {
+        if (monotonic.size < MIN_FRAMES) {
             return KnownSpeedCalibrationResult.Rejected(
-                "Mesures non monotones : éloignement et rapprochement mélangés ($reversals inversion(s)).",
-                commonQuality.copy(measurementsRetained = ordered.size),
+                "Mesures insuffisantes après filtrage monotone (${monotonic.size}/$MIN_FRAMES conservées).",
+                commonQuality.copy(measurementsRetained = monotonic.size),
             )
         }
-        val baseEstimate = SpeedEstimator().let { estimator -> ordered.map { estimator.add(it) }.last() }
+        val baseEstimate = SpeedEstimator().let { estimator -> monotonic.map { estimator.add(it) }.last() }
         if (baseEstimate !is SpeedEstimate.Accepted || abs(baseEstimate.closingMps) < 0.01) {
             return KnownSpeedCalibrationResult.Rejected(
                 "Variation apparente insuffisante pour ajuster la calibration.",
-                commonQuality.copy(measurementsRetained = ordered.size),
+                commonQuality.copy(measurementsRetained = monotonic.size),
             )
         }
         val targetMps = knownSpeedKmh / 3.6
@@ -136,7 +145,7 @@ object KnownSpeedCalibrationEngine {
                 add("Facteur ajusté sur une largeur moyenne de véhicule ; ne pas généraliser sans validation.")
             }
         val quality =
-            KnownSpeedCalibrationQuality(ordered.size, baseEstimate.inlierCount, trackingStability, residual, dispersion, scale, warnings)
+            KnownSpeedCalibrationQuality(monotonic.size, baseEstimate.inlierCount, trackingStability, residual, dispersion, scale, warnings)
         if (residual > .5 ||
             baseEstimate.qualityScore < .6
         ) {

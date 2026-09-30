@@ -41,13 +41,13 @@ class KnownSpeedCalibrationTest {
     }
 
     @Test
-    fun rejectsDepthDirectionReversal() {
+    fun filtersDepthDirectionReversal() {
         val observations =
             (0..12).map { i ->
-                val depth = if (i < 7) 30.0 - i * .5 else 27.0 + (i - 6) * .5
+                val depth = if (i == 6) 34.0 else 30.0 - i * .5
                 DepthObservation("video", 1, "calibration", i * 100_000L, depth, .95, true, true, true)
             }
-        val result = assertIs<KnownSpeedCalibrationResult.Rejected>(KnownSpeedCalibrationEngine.fit(base, observations, 18.0))
-        assertTrue(result.reason.contains("monotones"))
+        val result = assertIs<KnownSpeedCalibrationResult.Accepted>(KnownSpeedCalibrationEngine.fit(base, observations, 18.0))
+        assertTrue(result.quality.measurementsRetained >= 8)
     }
 }
