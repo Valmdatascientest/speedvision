@@ -46,7 +46,7 @@ object VehicleSizeDepthEstimator {
         if (detection.classId != profile.classId || detection.score < 0.35f) return null
         val pixelWidth = detection.box.width.toDouble()
         if (!pixelWidth.isFinite() || pixelWidth < MIN_PIXEL_WIDTH) return null
-        val depth = calibration.fx * profile.widthMeters / pixelWidth
+        val depth = calibration.fx * profile.widthMeters * calibration.vehicleWidthScale / pixelWidth
         if (!depth.isFinite() || depth !in .05..10_000.0) return null
         val quality = (detection.score.toDouble() * (pixelWidth / 96.0).coerceIn(0.0, 1.0)).coerceIn(0.0, 1.0)
         return VehicleSizeDepth(depth, profile, pixelWidth, quality)

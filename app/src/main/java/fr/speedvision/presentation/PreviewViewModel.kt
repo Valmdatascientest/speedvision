@@ -67,6 +67,7 @@ data class PreviewState(
     val cameraFixed: Boolean = false,
     val liveDepthMeters: Double? = null,
     val liveSpeed: SpeedEstimate = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
+    val liveObservations: List<DepthObservation> = emptyList(),
 )
 
 internal fun uprightBitmap(frame: VideoFrame): Bitmap {
@@ -310,6 +311,33 @@ class PreviewViewModel
                                         calibrationBinding = currentBinding,
                                         liveDepthMeters = liveCandidate?.first?.axialMeters,
                                         liveSpeed = liveCandidate?.second ?: it.liveSpeed,
+                                        liveObservations =
+                                            liveCandidate?.let { candidate ->
+                                                val existing = it.liveObservations
+                                                (
+                                                    existing +
+                                                        DepthObservation(
+                                                            sourceId,
+                                                            tracking
+                                                                ?.tracks
+                                                                ?.firstOrNull { track -> track.status == TrackStatus.CONFIRMED }
+                                                                ?.id ?: -1,
+                                                            java.security.MessageDigest
+                                                                .getInstance("SHA-256")
+                                                                .digest(
+                                                                    fr.speedvision.geometry.CalibrationJson
+                                                                        .encode(requireNotNull(currentState.cameraCalibration))
+                                                                        .toByteArray(),
+                                                                ).joinToString("") { byte -> "%02x".format(byte) },
+                                                            frame.presentationTimeUs,
+                                                            candidate.first.axialMeters,
+                                                            candidate.first.quality,
+                                                            true,
+                                                            true,
+                                                            true,
+                                                        )
+                                                ).takeLast(64)
+                                            } ?: it.liveObservations,
                                         frameCount = count,
                                         ptsUs = frame.presentationTimeUs,
                                         fps = if (duration > 0) (count - 1) / duration else 0.0,
@@ -347,6 +375,7 @@ class PreviewViewModel
                     cameraCalibration = null,
                     liveDepthMeters = null,
                     liveSpeed = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
+                    liveObservations = emptyList(),
                     error = null,
                     detections = null,
                     tracking = null,

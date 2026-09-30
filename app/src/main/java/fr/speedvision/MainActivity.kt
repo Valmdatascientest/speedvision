@@ -132,7 +132,14 @@ class MainActivity : ComponentActivity() {
                 val image = state.image
                 val binding = state.calibrationBinding
                 if (calibrationOpen && image != null && binding != null) {
-                    CalibrationWorkbench(image, binding, state.ptsUs, { calibrationOpen = false }, model::applyCalibration)
+                    CalibrationWorkbench(
+                        image,
+                        binding,
+                        state.ptsUs,
+                        { calibrationOpen = false },
+                        model::applyCalibration,
+                        state.liveObservations,
+                    )
                 }
             }
         }

@@ -72,6 +72,8 @@ data class CameraCalibration(
     val provenance: String,
     val validationRmsPx: Double,
     val plate: PlateProfile,
+    /** Multiplicative prior for vehicle-size fallback; plate/PnP depth does not use it. */
+    val vehicleWidthScale: Double = 1.0,
 ) {
     init {
         require(listOf(fx, fy, cx, cy, validationRmsPx).all { it.isFinite() })
@@ -80,6 +82,7 @@ data class CameraCalibration(
         require(distortion.size == 5 && distortion.all { it.isFinite() && kotlin.math.abs(it) <= 10 })
         require(provenance.isNotBlank() && provenance.length <= 1000)
         require(validationRmsPx in 0.0..2.0)
+        require(vehicleWidthScale.isFinite() && vehicleWidthScale in 0.25..4.0)
     }
 }
 

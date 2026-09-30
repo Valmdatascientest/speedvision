@@ -49,11 +49,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import fr.speedvision.BuildConfig
+import fr.speedvision.data.CalibrationRepository
 import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.domain.CameraCalibration
 import fr.speedvision.domain.DepthObservation
 import fr.speedvision.domain.DistanceEstimate
 import fr.speedvision.domain.ImagePoint
+import fr.speedvision.domain.KnownSpeedCalibrationEngine
+import fr.speedvision.domain.KnownSpeedCalibrationResult
 import fr.speedvision.domain.PlateProfile
 import fr.speedvision.domain.SpeedCsv
 import fr.speedvision.geometry.CalibrationJson
@@ -73,8 +76,10 @@ fun CalibrationWorkbench(
     timestampUs: Long,
     close: () -> Unit,
     applied: (CameraCalibration) -> Unit = {},
+    knownSpeedObservations: List<DepthObservation> = emptyList(),
 ) {
     val context = LocalContext.current
+    val repository = remember(context) { CalibrationRepository(context) }
     val scope = rememberCoroutineScope()
     var fx by remember { mutableStateOf("") }
     var fy by remember { mutableStateOf("") }
@@ -97,6 +102,26 @@ fun CalibrationWorkbench(
     var centerX by remember { mutableFloatStateOf(.5f) }
     var centerY by remember { mutableFloatStateOf(.5f) }
     var revision by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(binding) {
+        if (!BuildConfig.DEMO_CALIBRATION) {
+            repository.load(binding)?.let { stored ->
+                fx = stored.fx.toString()
+                fy = stored.fy.toString()
+                cx = stored.cx.toString()
+                cy = stored.cy.toString()
+                distortion = stored.distortion.joinToString(",")
+                provenance = stored.provenance
+                rms = stored.validationRmsPx.toString()
+                plateWidth = (stored.plate.widthMeters * 1000).toString()
+                plateHeight = (stored.plate.heightMeters * 1000).toString()
+                profileName = stored.plate.name
+                calibration = stored
+                acknowledged = true
+                message = "Profil local rechargé pour cette source."
+            }
+        }
+    }
 
     LaunchedEffect(image, binding) {
         if (BuildConfig.DEMO_CALIBRATION && calibration == null && points.isEmpty()) {
@@ -171,6 +196,7 @@ fun CalibrationWorkbench(
     var annotationTrack by remember { mutableStateOf("") }
     var observationQuality by remember { mutableStateOf("") }
     var cameraStationary by remember { mutableStateOf(false) }
+    var knownSpeedKmh by remember { mutableStateOf("") }
     val exportObservation =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
             if (uri != null) {
@@ -374,6 +400,7 @@ fun CalibrationWorkbench(
                                     PlateProfile(profileName, plateWidth.toDouble() / 1000, plateHeight.toDouble() / 1000),
                                 )
                             calibration = profile
+                            repository.save(profile)
                             applied(profile)
                             "Profil appliqué à cette source et ce mode."
                         }.getOrElse { "Paramètres invalides : vérifiez les valeurs, unités et RMS." }
@@ -382,6 +409,44 @@ fun CalibrationWorkbench(
                     exportText = CalibrationJson.encode(requireNotNull(calibration))
                     export.launch("speedvision-calibration-v1.json")
                 }) { Text("Exporter le profil JSON") }
+                Text("Calibration par vidéo connue", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Après avoir joué une vidéo à vitesse connue avec une calibration initiale, ajustez uniquement le facteur de largeur véhicule à partir des observations retenues.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    knownSpeedKmh,
+                    { knownSpeedKmh = it.filter { character -> character.isDigit() || character == '.' || character == ',' } },
+                    label = { Text("Vitesse réelle (km/h)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedButton(
+                    enabled = calibration != null && knownSpeedObservations.isNotEmpty() && !busy,
+                    onClick = {
+                        val base = requireNotNull(calibration)
+                        val speed = knownSpeedKmh.replace(',', '.').toDoubleOrNull()
+                        if (speed == null) {
+                            message = "Vitesse invalide."
+                        } else {
+                            when (val fitted = KnownSpeedCalibrationEngine.fit(base, knownSpeedObservations, speed)) {
+                                is KnownSpeedCalibrationResult.Accepted -> {
+                                    calibration = fitted.calibration
+                                    repository.save(fitted.calibration)
+                                    applied(fitted.calibration)
+                                    message =
+                                        "Calibration ajustée : facteur ${String.format(
+                                            Locale.FRANCE,
+                                            "%.3f",
+                                            fitted.quality.scale,
+                                        )} · ${fitted.quality.measurementsRetained} mesures."
+                                }
+                                is KnownSpeedCalibrationResult.Rejected -> {
+                                    message = "Calibration refusée : ${fitted.reason}"
+                                }
+                            }
+                        }
+                    },
+                ) { Text("Ajuster avec la vidéo connue (${knownSpeedObservations.size} mesures)") }
                 message?.let { Text(it) }
                 Text(
                     "3. Touchez les coins physiques dans l’ordre HG → HD → BD → BG. N’utilisez pas les coins d’une boîte de détection. Plaque entière, nette et plane requise.",
