@@ -14,6 +14,8 @@ Sans modèles, le lecteur et CameraX fonctionnent et la détection indique son i
 
 Après lecture, ouvrir **Calibration / distance sur image arrêtée** pour importer/saisir une calibration, définir les dimensions physiques et sélectionner les quatre coins réels. La mesure est expérimentale, sans incertitude métrique quantifiée. [Procédure et limites](CALIBRATION.md).
 
+Pour ajuster le fallback véhicule avec une vidéo dont la vitesse est connue, suivre le parcours [Calibration par vidéo](docs/VIDEO_CALIBRATION.md). Le profil est conservé par géométrie exacte de source et peut être exporté en JSON.
+
 Ouvrir **Laboratoire de vitesse / CSV** pour analyser une série à caméra fixe, consulter les rejets et exporter les résultats. Un exemple synthétique peut être chargé explicitement. [Schéma CSV, protocole et limites](testing/speed/README.md).
 
 ## Fonctionnement de bout en bout

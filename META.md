@@ -48,7 +48,7 @@ Le format I420/BT.709 est documenté dans l'ancien convertisseur officiel; la do
 
 Le temps métrique provient de `VideoFrame.presentationTimeUs`, jamais de l'heure de réception. PTS négatifs, doublons ou régressions provoquent un arrêt; changement de lecture invalide les suivis. Le tampon borné ne supprime que des images **déjà décodées**, jamais des paquets HEVC interdépendants. La connexion expire après 15 s; un flux sans image pendant 10 s est interrompu. Les changements de session, pause/fermeture et erreurs interrompent le flux, y compris les avertissements SDK actuellement traités conservativement comme arrêts.
 
-Les indications batterie/thermique viennent de `DeviceSession.deviceInfo`; elles ne sont pas une mesure d'énergie ou de température du téléphone. L'incrément ne calibre aucune focale automatiquement et n'annonce toujours aucune vitesse live. Le module `mwdat-motion` apparu en 1.0 est expérimental et **non intégré**; aucune IMU de lunettes ni synchronisation avec les images n'est revendiquée.
+Les indications batterie/thermique viennent de `DeviceSession.deviceInfo`; elles ne sont pas une mesure d'énergie ou de température du téléphone. Le flux Meta réutilise le même pipeline de calibration et de vitesse live expérimentale que la caméra du téléphone, mais la compatibilité du format réel, les pertes et la thermique restent à valider sur les lunettes. Le module `mwdat-motion` apparu en 1.0 est expérimental et **non intégré**; aucune IMU de lunettes ni synchronisation avec les images n'est revendiquée.
 
 ## Confidentialité et distribution
 
