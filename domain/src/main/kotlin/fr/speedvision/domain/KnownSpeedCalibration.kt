@@ -66,24 +66,38 @@ object KnownSpeedCalibrationEngine {
         ) {
             return KnownSpeedCalibrationResult.Rejected("Nombre insuffisant de mesures exploitables.", commonQuality)
         }
-        val ordered = observations.sortedBy { it.timestampUs }
-        val span = ordered.last().timestampUs - ordered.first().timestampUs
-        if (span < MIN_SPAN_US) return KnownSpeedCalibrationResult.Rejected("Vidéo trop courte ou variation insuffisante.", commonQuality)
-        if (ordered.zipWithNext().any { (a, b) -> b.timestampUs - a.timestampUs > MAX_GAP_US }) {
-            return KnownSpeedCalibrationResult.Rejected("Horodatages discontinus ou tracking instable.", commonQuality)
-        }
-        if (ordered.any { !it.cameraFixed || !it.trackObserved || !it.geometryValid || !it.depthMeters.isFinite() }) {
+        val allOrdered = observations.sortedBy { it.timestampUs }
+        if (allOrdered.any { !it.cameraFixed || !it.trackObserved || !it.geometryValid || !it.depthMeters.isFinite() }) {
             return KnownSpeedCalibrationResult.Rejected("Mesures invalides ou caméra non déclarée fixe.", commonQuality)
         }
-        val reference = ordered.first().calibrationId
-        if (ordered.any {
-                it.calibrationId != reference ||
-                    it.trackId != ordered.first().trackId ||
-                    it.sequenceId != ordered.first().sequenceId
+        val segments = buildList {
+            var segment = mutableListOf<DepthObservation>()
+            allOrdered.forEach { observation ->
+                val previous = segment.lastOrNull()
+                val contiguous =
+                    previous != null &&
+                        observation.timestampUs - previous.timestampUs <= MAX_GAP_US &&
+                        observation.sequenceId == previous.sequenceId &&
+                        observation.trackId == previous.trackId &&
+                        observation.calibrationId == previous.calibrationId
+                if (previous == null || contiguous) {
+                    segment += observation
+                } else {
+                    add(segment)
+                    segment = mutableListOf(observation)
+                }
             }
-        ) {
-            return KnownSpeedCalibrationResult.Rejected("Identité, piste ou calibration changée pendant la vidéo.", commonQuality)
+            if (segment.isNotEmpty()) add(segment)
         }
+        val ordered = segments.maxByOrNull { it.size }.orEmpty()
+        if (ordered.size < MIN_FRAMES) {
+            return KnownSpeedCalibrationResult.Rejected(
+                "Horodatages discontinus ou tracking instable (${ordered.size}/$MIN_FRAMES mesures dans la meilleure séquence).",
+                commonQuality,
+            )
+        }
+        val span = ordered.last().timestampUs - ordered.first().timestampUs
+        if (span < MIN_SPAN_US) return KnownSpeedCalibrationResult.Rejected("Vidéo trop courte ou variation insuffisante.", commonQuality)
         val baseEstimate = SpeedEstimator().let { estimator -> ordered.map { estimator.add(it) }.last() }
         if (baseEstimate !is SpeedEstimate.Accepted || abs(baseEstimate.closingMps) < 0.01) {
             return KnownSpeedCalibrationResult.Rejected(
