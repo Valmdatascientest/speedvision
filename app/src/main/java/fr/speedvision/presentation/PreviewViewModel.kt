@@ -254,7 +254,7 @@ class PreviewViewModel
                                     )
                                 val currentState = mutableState.value
                                 val liveCandidate =
-                                    if (currentState.cameraFixed && currentState.cameraCalibration?.binding == currentBinding) {
+                                    if (currentState.cameraCalibration?.binding == currentBinding) {
                                         val track =
                                             tracking?.tracks?.firstOrNull {
                                                 it.status == TrackStatus.CONFIRMED && it.detectionIndex != null
@@ -286,11 +286,16 @@ class PreviewViewModel
                                                             depth.axialMeters,
                                                             depth.quality,
                                                             true,
-                                                            true,
+                                                            currentState.cameraFixed,
                                                             true,
                                                         )
-                                                    val estimate = liveSpeedEstimator.add(observation)
-                                                    depth to estimate
+                                                    val estimate =
+                                                        if (currentState.cameraFixed) {
+                                                            liveSpeedEstimator.add(observation)
+                                                        } else {
+                                                            SpeedEstimate.Rejected(SpeedRejection.CAMERA_MOVING_OR_UNKNOWN, 0)
+                                                        }
+                                                    Triple(depth, estimate, observation)
                                                 }
                                         } else {
                                             null
@@ -314,29 +319,7 @@ class PreviewViewModel
                                         liveObservations =
                                             liveCandidate?.let { candidate ->
                                                 val existing = it.liveObservations
-                                                (
-                                                    existing +
-                                                        DepthObservation(
-                                                            sourceId,
-                                                            tracking
-                                                                ?.tracks
-                                                                ?.firstOrNull { track -> track.status == TrackStatus.CONFIRMED }
-                                                                ?.id ?: -1,
-                                                            java.security.MessageDigest
-                                                                .getInstance("SHA-256")
-                                                                .digest(
-                                                                    fr.speedvision.geometry.CalibrationJson
-                                                                        .encode(requireNotNull(currentState.cameraCalibration))
-                                                                        .toByteArray(),
-                                                                ).joinToString("") { byte -> "%02x".format(byte) },
-                                                            frame.presentationTimeUs,
-                                                            candidate.first.axialMeters,
-                                                            candidate.first.quality,
-                                                            true,
-                                                            true,
-                                                            true,
-                                                        )
-                                                ).takeLast(64)
+                                                (existing + candidate.third).takeLast(64)
                                             } ?: it.liveObservations,
                                         frameCount = count,
                                         ptsUs = frame.presentationTimeUs,
