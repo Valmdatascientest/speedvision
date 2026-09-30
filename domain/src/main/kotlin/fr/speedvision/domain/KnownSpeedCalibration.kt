@@ -1,6 +1,7 @@
 package fr.speedvision.domain
 
 import kotlin.math.abs
+import kotlin.math.sign
 
 data class KnownSpeedCalibrationQuality(
     val framesAnalyzed: Int,
@@ -38,6 +39,7 @@ object KnownSpeedCalibrationEngine {
     private const val MAX_GAP_US = 300_000L
     private const val MIN_SCALE = 0.25
     private const val MAX_SCALE = 4.0
+    private const val MONOTONIC_TOLERANCE_METERS = 0.05
 
     fun fit(
         base: CameraCalibration,
@@ -98,6 +100,23 @@ object KnownSpeedCalibrationEngine {
         }
         val span = ordered.last().timestampUs - ordered.first().timestampUs
         if (span < MIN_SPAN_US) return KnownSpeedCalibrationResult.Rejected("Vidéo trop courte ou variation insuffisante.", commonQuality)
+        val direction =
+            ordered
+                .zipWithNext()
+                .map { (previous, current) -> current.depthMeters - previous.depthMeters }
+                .firstOrNull { abs(it) > MONOTONIC_TOLERANCE_METERS }
+                ?.let(::sign)
+                ?: 0.0
+        val reversals =
+            ordered.zipWithNext().count { (previous, current) ->
+                direction * (current.depthMeters - previous.depthMeters) < -MONOTONIC_TOLERANCE_METERS
+            }
+        if (reversals > 0) {
+            return KnownSpeedCalibrationResult.Rejected(
+                "Mesures non monotones : éloignement et rapprochement mélangés ($reversals inversion(s)).",
+                commonQuality.copy(measurementsRetained = ordered.size),
+            )
+        }
         val baseEstimate = SpeedEstimator().let { estimator -> ordered.map { estimator.add(it) }.last() }
         if (baseEstimate !is SpeedEstimate.Accepted || abs(baseEstimate.closingMps) < 0.01) {
             return KnownSpeedCalibrationResult.Rejected(
