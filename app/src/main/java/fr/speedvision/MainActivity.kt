@@ -93,6 +93,8 @@ class MainActivity : ComponentActivity() {
                     { picker.launch(arrayOf("video/*")) },
                     model::start,
                     model::stop,
+                    model::nextFrame,
+                    model::previousFrame,
                     model::debug,
                     camera = {
                         model.stop()
@@ -162,6 +164,8 @@ fun PreviewScreen(
     select: () -> Unit,
     start: () -> Unit,
     stop: () -> Unit,
+    nextFrame: () -> Unit,
+    previousFrame: () -> Unit,
     debug: (Boolean) -> Unit,
     camera: () -> Unit = {},
     cameraFixed: (Boolean) -> Unit = {},
@@ -248,8 +252,24 @@ fun PreviewScreen(
             OutlinedButton(onClick = select, modifier = Modifier.fillMaxWidth()) { Text("Choisir une vidéo") }
             OutlinedButton(onClick = camera, modifier = Modifier.fillMaxWidth()) { Text("Caméra du téléphone") }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = start, enabled = state.selected && state.state != PlaybackState.PLAYING) { Text("START · Rejouer") }
+                Button(onClick = start, enabled = state.selected && state.state != PlaybackState.PLAYING) { Text("Continuer la lecture") }
                 OutlinedButton(onClick = stop, enabled = state.state == PlaybackState.PLAYING) { Text("STOP") }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = previousFrame,
+                    enabled = state.selected && !state.camera && state.state != PlaybackState.PLAYING,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Image précédente")
+                }
+                OutlinedButton(
+                    onClick = nextFrame,
+                    enabled = state.selected && !state.camera && state.state != PlaybackState.PLAYING,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Image suivante")
+                }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Détection véhicules / plaques")

@@ -1,5 +1,6 @@
 package fr.speedvision.presentation
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
@@ -8,6 +9,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import fr.speedvision.data.CalibrationRepository
 import fr.speedvision.di.VideoSourceFactory
 import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.domain.CameraCalibration
@@ -84,7 +87,9 @@ class PreviewViewModel
     constructor(
         private val factory: VideoSourceFactory,
         private val detector: DetectionEngine,
+        @ApplicationContext context: Context,
     ) : ViewModel() {
+        private val calibrationRepository = CalibrationRepository(context)
         private val mutableState = MutableStateFlow(PreviewState())
         val state = mutableState.asStateFlow()
         private var source: VideoSource? = null
@@ -252,6 +257,10 @@ class PreviewViewModel
                                         frame.height,
                                         frame.rotationDegrees,
                                     )
+                                if (mutableState.value.cameraCalibration?.binding != currentBinding) {
+                                    val persisted = calibrationRepository.load(currentBinding)
+                                    mutableState.update { it.copy(calibrationBinding = currentBinding, cameraCalibration = persisted) }
+                                }
                                 val currentState = mutableState.value
                                 val liveCandidate =
                                     if (currentState.cameraCalibration?.binding == currentBinding) {
@@ -355,7 +364,6 @@ class PreviewViewModel
                     fps = 0.0,
                     image = null,
                     calibrationBinding = null,
-                    cameraCalibration = null,
                     liveDepthMeters = null,
                     liveSpeed = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
                     liveObservations = emptyList(),
@@ -372,6 +380,18 @@ class PreviewViewModel
                 )
             }
             source?.start()
+        }
+
+        fun nextFrame() {
+            if (mutableState.value.camera) return
+            stop()
+            source?.nextFrame()
+        }
+
+        fun previousFrame() {
+            if (mutableState.value.camera) return
+            stop()
+            source?.previousFrame()
         }
 
         fun stop() {
