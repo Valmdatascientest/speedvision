@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
             var metaOpen by remember { mutableStateOf(false) }
             var voiceOpen by remember { mutableStateOf(false) }
             var speedOpen by remember { mutableStateOf(false) }
+            var fullscreen by remember { mutableStateOf(false) }
             val picker =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                     if (uri != null) model.select(uri)
@@ -96,6 +97,8 @@ class MainActivity : ComponentActivity() {
                     model::nextFrame,
                     model::previousFrame,
                     model::debug,
+                    fullscreen = fullscreen,
+                    toggleFullscreen = { fullscreen = !fullscreen },
                     camera = {
                         model.stop()
                         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -167,6 +170,8 @@ fun PreviewScreen(
     nextFrame: () -> Unit,
     previousFrame: () -> Unit,
     debug: (Boolean) -> Unit,
+    fullscreen: Boolean = false,
+    toggleFullscreen: () -> Unit = {},
     camera: () -> Unit = {},
     cameraFixed: (Boolean) -> Unit = {},
     detection: (Boolean) -> Unit = {},
@@ -175,6 +180,10 @@ fun PreviewScreen(
     voice: () -> Unit = {},
     meta: () -> Unit = {},
 ) {
+    if (fullscreen) {
+        FullscreenDetectionView(state, toggleFullscreen)
+        return
+    }
     Scaffold { insets ->
         Column(
             Modifier
@@ -293,6 +302,9 @@ fun PreviewScreen(
             OutlinedButton(onClick = calibration, enabled = state.image != null && state.calibrationBinding != null) {
                 Text("Calibration / distance sur image arrêtée")
             }
+            OutlinedButton(onClick = toggleFullscreen, enabled = state.image != null, modifier = Modifier.fillMaxWidth()) {
+                Text("Affichage plein écran · détection vitesse")
+            }
             if (BuildConfig.META_ENABLED) OutlinedButton(onClick = meta) { Text("Lunettes Meta") }
             OutlinedButton(onClick = speed) { Text("Laboratoire de vitesse / CSV") }
             Card(Modifier.fillMaxWidth()) {
@@ -409,6 +421,40 @@ fun PreviewScreen(
             )
             Spacer(Modifier.height(4.dp))
             Text("Prototype expérimental · Aucune vidéo enregistrée par l’application.", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun FullscreenDetectionView(
+    state: PreviewState,
+    exit: () -> Unit,
+) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        state.image?.let { image ->
+            Image(
+                image.asImageBitmap(),
+                "Image de détection en plein écran",
+                Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        }
+        Card(Modifier.align(Alignment.TopStart).padding(16.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                when (val live = state.liveSpeed) {
+                    is SpeedEstimate.Accepted -> {
+                        Text(String.format(Locale.FRANCE, "%.1f km/h", live.closingKmh), style = MaterialTheme.typography.headlineMedium)
+                        Text(String.format(Locale.FRANCE, "Distance %.2f m · qualité %.2f", live.depthAtReferenceMeters, live.qualityScore))
+                    }
+                    is SpeedEstimate.Rejected -> {
+                        Text("Vitesse : —", style = MaterialTheme.typography.headlineMedium)
+                        Text("Mesures : ${live.sampleCount} · ${live.reason}")
+                    }
+                }
+            }
+        }
+        OutlinedButton(onClick = exit, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+            Text("Quitter")
         }
     }
 }
