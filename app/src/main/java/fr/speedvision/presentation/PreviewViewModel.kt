@@ -27,6 +27,7 @@ import fr.speedvision.domain.VehicleSizeDepthEstimator
 import fr.speedvision.domain.VehicleTracker
 import fr.speedvision.domain.VideoFrame
 import fr.speedvision.domain.VideoSource
+import fr.speedvision.domain.approximateCalibration
 import fr.speedvision.meta.MetaSupport
 import fr.speedvision.motion.BackgroundMotion
 import fr.speedvision.motion.BackgroundMotionEstimator
@@ -258,8 +259,8 @@ class PreviewViewModel
                                         frame.rotationDegrees,
                                     )
                                 if (mutableState.value.cameraCalibration?.binding != currentBinding) {
-                                    val persisted = calibrationRepository.load(currentBinding)
-                                    mutableState.update { it.copy(calibrationBinding = currentBinding, cameraCalibration = persisted) }
+                                    val profile = calibrationRepository.load(currentBinding) ?: approximateCalibration(currentBinding)
+                                    mutableState.update { it.copy(calibrationBinding = currentBinding, cameraCalibration = profile) }
                                 }
                                 val currentState = mutableState.value
                                 val liveCandidate =

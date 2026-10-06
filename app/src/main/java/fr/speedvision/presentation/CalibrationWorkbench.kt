@@ -441,7 +441,12 @@ fun CalibrationWorkbench(
                                         )} · ${fitted.quality.measurementsRetained} mesures."
                                 }
                                 is KnownSpeedCalibrationResult.Rejected -> {
-                                    message = "Calibration refusée : ${fitted.reason}"
+                                    message =
+                                        if (fitted.reason.contains("variation", ignoreCase = true)) {
+                                            "Ajustement impossible : mouvement axial insuffisant. L’estimation approximative reste active."
+                                        } else {
+                                            "Calibration refusée : ${fitted.reason}. L’estimation approximative reste active."
+                                        }
                                 }
                             }
                         }

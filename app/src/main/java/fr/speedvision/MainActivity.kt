@@ -51,9 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import fr.speedvision.domain.CalibrationMode
 import fr.speedvision.domain.PlaybackState
 import fr.speedvision.domain.SpeedEstimate
 import fr.speedvision.domain.TrackStatus
+import fr.speedvision.domain.mode
 import fr.speedvision.meta.MetaSupport
 import fr.speedvision.presentation.CalibrationWorkbench
 import fr.speedvision.presentation.PreviewState
@@ -311,6 +313,7 @@ fun PreviewScreen(
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (val live = state.liveSpeed) {
                         is SpeedEstimate.Accepted -> {
+                            Text("Mode : ${state.cameraCalibration?.mode?.label() ?: "INACTIF"}")
                             Text(
                                 String.format(Locale.FRANCE, "Vitesse relative : %+.1f km/h", live.closingKmh),
                                 style = MaterialTheme.typography.titleLarge,
@@ -325,6 +328,7 @@ fun PreviewScreen(
                             )
                         }
                         is SpeedEstimate.Rejected -> {
+                            Text("Mode : ${state.cameraCalibration?.mode?.label() ?: "INACTIF"}")
                             Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 "Distance : ${state.liveDepthMeters?.let {
@@ -338,10 +342,8 @@ fun PreviewScreen(
                         }
                     }
                     Text(
-                        if (state.cameraCalibration ==
-                            null
-                        ) {
-                            "Appliquez une calibration pour activer la mesure live."
+                        if (state.cameraCalibration?.mode == CalibrationMode.APPROXIMATE) {
+                            "Profil approximatif actif. Effectuez une calibration pour améliorer la précision."
                         } else {
                             "La vitesse live exige une caméra fixe déclarée et une piste stable."
                         },
@@ -441,6 +443,7 @@ private fun FullscreenDetectionView(
         }
         Card(Modifier.align(Alignment.TopStart).padding(16.dp)) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text("Mode : ${state.cameraCalibration?.mode?.label() ?: "INACTIF"}")
                 when (val live = state.liveSpeed) {
                     is SpeedEstimate.Accepted -> {
                         Text(String.format(Locale.FRANCE, "%.1f km/h", live.closingKmh), style = MaterialTheme.typography.headlineMedium)
@@ -466,4 +469,10 @@ private fun PlaybackState.label(): String =
         PlaybackState.STOPPED -> "ARRÊTÉ"
         PlaybackState.ENDED -> "FIN DE VIDÉO"
         PlaybackState.ERROR -> "ERREUR"
+    }
+
+private fun CalibrationMode.label(): String =
+    when (this) {
+        CalibrationMode.APPROXIMATE -> "APPROXIMATIF"
+        CalibrationMode.CALIBRATED -> "CALIBRÉ"
     }
