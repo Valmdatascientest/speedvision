@@ -41,6 +41,10 @@ interface VideoSource {
 
     fun frames(): Flow<VideoFrame>
 
+    fun nextFrame() {}
+
+    fun previousFrame() {}
+
     fun close() {
         stop()
     }

@@ -1,5 +1,6 @@
 package fr.speedvision.presentation
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
@@ -8,6 +9,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import fr.speedvision.data.CalibrationRepository
 import fr.speedvision.di.VideoSourceFactory
 import fr.speedvision.domain.CalibrationBinding
 import fr.speedvision.domain.CameraCalibration
@@ -24,6 +27,7 @@ import fr.speedvision.domain.VehicleSizeDepthEstimator
 import fr.speedvision.domain.VehicleTracker
 import fr.speedvision.domain.VideoFrame
 import fr.speedvision.domain.VideoSource
+import fr.speedvision.domain.approximateCalibration
 import fr.speedvision.meta.MetaSupport
 import fr.speedvision.motion.BackgroundMotion
 import fr.speedvision.motion.BackgroundMotionEstimator
@@ -67,6 +71,7 @@ data class PreviewState(
     val cameraFixed: Boolean = false,
     val liveDepthMeters: Double? = null,
     val liveSpeed: SpeedEstimate = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
+    val liveObservations: List<DepthObservation> = emptyList(),
 )
 
 internal fun uprightBitmap(frame: VideoFrame): Bitmap {
@@ -83,7 +88,9 @@ class PreviewViewModel
     constructor(
         private val factory: VideoSourceFactory,
         private val detector: DetectionEngine,
+        @ApplicationContext context: Context,
     ) : ViewModel() {
+        private val calibrationRepository = CalibrationRepository(context)
         private val mutableState = MutableStateFlow(PreviewState())
         val state = mutableState.asStateFlow()
         private var source: VideoSource? = null
@@ -251,9 +258,13 @@ class PreviewViewModel
                                         frame.height,
                                         frame.rotationDegrees,
                                     )
+                                if (mutableState.value.cameraCalibration?.binding != currentBinding) {
+                                    val profile = calibrationRepository.load(currentBinding) ?: approximateCalibration(currentBinding)
+                                    mutableState.update { it.copy(calibrationBinding = currentBinding, cameraCalibration = profile) }
+                                }
                                 val currentState = mutableState.value
                                 val liveCandidate =
-                                    if (currentState.cameraFixed && currentState.cameraCalibration?.binding == currentBinding) {
+                                    if (currentState.cameraCalibration?.binding == currentBinding) {
                                         val track =
                                             tracking?.tracks?.firstOrNull {
                                                 it.status == TrackStatus.CONFIRMED && it.detectionIndex != null
@@ -285,11 +296,16 @@ class PreviewViewModel
                                                             depth.axialMeters,
                                                             depth.quality,
                                                             true,
-                                                            true,
+                                                            currentState.cameraFixed,
                                                             true,
                                                         )
-                                                    val estimate = liveSpeedEstimator.add(observation)
-                                                    depth to estimate
+                                                    val estimate =
+                                                        if (currentState.cameraFixed) {
+                                                            liveSpeedEstimator.add(observation)
+                                                        } else {
+                                                            SpeedEstimate.Rejected(SpeedRejection.CAMERA_MOVING_OR_UNKNOWN, 0)
+                                                        }
+                                                    Triple(depth, estimate, observation)
                                                 }
                                         } else {
                                             null
@@ -310,6 +326,11 @@ class PreviewViewModel
                                         calibrationBinding = currentBinding,
                                         liveDepthMeters = liveCandidate?.first?.axialMeters,
                                         liveSpeed = liveCandidate?.second ?: it.liveSpeed,
+                                        liveObservations =
+                                            liveCandidate?.let { candidate ->
+                                                val existing = it.liveObservations
+                                                (existing + candidate.third).takeLast(64)
+                                            } ?: it.liveObservations,
                                         frameCount = count,
                                         ptsUs = frame.presentationTimeUs,
                                         fps = if (duration > 0) (count - 1) / duration else 0.0,
@@ -344,9 +365,9 @@ class PreviewViewModel
                     fps = 0.0,
                     image = null,
                     calibrationBinding = null,
-                    cameraCalibration = null,
                     liveDepthMeters = null,
                     liveSpeed = SpeedEstimate.Rejected(SpeedRejection.NO_DATA, 0),
+                    liveObservations = emptyList(),
                     error = null,
                     detections = null,
                     tracking = null,
@@ -360,6 +381,18 @@ class PreviewViewModel
                 )
             }
             source?.start()
+        }
+
+        fun nextFrame() {
+            if (mutableState.value.camera) return
+            stop()
+            source?.nextFrame()
+        }
+
+        fun previousFrame() {
+            if (mutableState.value.camera) return
+            stop()
+            source?.previousFrame()
         }
 
         fun stop() {

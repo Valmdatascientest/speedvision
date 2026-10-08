@@ -15,6 +15,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import fr.speedvision.BuildConfig
 import fr.speedvision.domain.DepthObservation
 import fr.speedvision.domain.SpeedCsv
 import fr.speedvision.domain.SpeedEstimate
@@ -51,6 +53,31 @@ fun SpeedWorkbench(close: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var exportText by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        if (BuildConfig.DEMO_CALIBRATION && rows.isEmpty()) {
+            rows =
+                withContext(Dispatchers.Default) {
+                    SpeedReplay.run(
+                        (0..20).map { i ->
+                            DepthObservation(
+                                "synthetic-example",
+                                1,
+                                "synthetic-known",
+                                i * 100_000L,
+                                30 - i * .5,
+                                .95,
+                                true,
+                                true,
+                                true,
+                            )
+                        },
+                    )
+                }
+            index = rows.lastIndex.coerceAtLeast(0)
+            label = "EXEMPLE SYNTHÉTIQUE · vitesse fictive, aucune mesure réelle"
+        }
+    }
 
     fun load(
         observations: suspend () -> List<DepthObservation>,

@@ -2,6 +2,10 @@
 
 Prototype Android expérimental d'estimation de **vitesse relative axiale** à partir d'une plaque connue ou, en secours, de la largeur moyenne d'un véhicule. Le laboratoire calcule une vitesse relative sur séries de profondeur horodatées. L'aperçu peut maintenant afficher une estimation live lorsque calibration, piste, caméra fixe et fenêtre temporelle sont valides. Le résultat reste expérimental et n'est pas une vitesse routière certifiée.
 
+![Aperçu de SpeedVision détectant un véhicule et une plaque sur une vidéo](docs/images/speedvision-detection.jpg)
+
+*Détection locale d’un véhicule (cadre vert), d’une plaque candidate (cadre jaune) et suivi expérimental sur un Samsung Z Flip7.*
+
 ## Utiliser
 
 Android 9/API 28 minimum. Choisir une vidéo locale MP4/H.264 SDR (≤ 1920 × 1920) ou la caméra arrière du téléphone, puis START. L'autorisation caméra n'est demandée qu'au choix de cette source. STOP arrête; START rejoue le fichier ou relance la caméra. Le passage en arrière-plan arrête le flux. Après recréation de l'écran, choisir à nouveau la caméra.
@@ -13,6 +17,8 @@ Le diagnostic du fond indique les correspondances, leur couverture et le résidu
 Sans modèles, le lecteur et CameraX fonctionnent et la détection indique son indisponibilité. Aucun téléchargement n'est effectué par l'application. [Préparer les modèles et comprendre leurs limites/licences](models/README.md).
 
 Après lecture, ouvrir **Calibration / distance sur image arrêtée** pour importer/saisir une calibration, définir les dimensions physiques et sélectionner les quatre coins réels. La mesure est expérimentale, sans incertitude métrique quantifiée. [Procédure et limites](CALIBRATION.md).
+
+Pour ajuster le fallback véhicule avec une vidéo dont la vitesse est connue, suivre le parcours [Calibration par vidéo](docs/VIDEO_CALIBRATION.md). Le profil est conservé par géométrie exacte de source et peut être exporté en JSON.
 
 Ouvrir **Laboratoire de vitesse / CSV** pour analyser une série à caméra fixe, consulter les rejets et exporter les résultats. Un exemple synthétique peut être chargé explicitement. [Schéma CSV, protocole et limites](testing/speed/README.md).
 

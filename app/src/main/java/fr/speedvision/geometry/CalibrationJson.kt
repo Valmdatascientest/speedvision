@@ -71,6 +71,7 @@ object CalibrationJson {
             o.getString("provenance"),
             number(o, "validationRmsPx"),
             PlateProfile(p.getString("name"), number(p, "widthMeters"), number(p, "heightMeters")),
+            o.optDouble("vehicleWidthScale", 1.0),
         )
     }
 
@@ -97,6 +98,7 @@ object CalibrationJson {
             .put("distortion", JSONArray(c.distortion))
             .put("provenance", c.provenance)
             .put("validationRmsPx", c.validationRmsPx)
+            .put("vehicleWidthScale", c.vehicleWidthScale)
             .put(
                 "plate",
                 JSONObject()

@@ -7,6 +7,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.SystemClock
 import fr.speedvision.domain.FrameGeometry
@@ -43,19 +44,60 @@ class VideoFileSource(
     private var job: Job? = null
     private var generation = 0L
 
+    @Volatile private var lastPresentationTimeUs = 0L
+    private var frameDurationUs = 100_000L
+
     override fun frames() = output.asSharedFlow()
+
+    @Synchronized
+    override fun nextFrame() {
+        if (mutableStatus.value.state == PlaybackState.PLAYING) return
+        emitFrameAt(lastPresentationTimeUs + frameDurationUs)
+    }
+
+    @Synchronized
+    override fun previousFrame() {
+        if (mutableStatus.value.state == PlaybackState.PLAYING) return
+        emitFrameAt((lastPresentationTimeUs - frameDurationUs).coerceAtLeast(0L))
+    }
+
+    private fun emitFrameAt(timeUs: Long) {
+        scope.launch(Dispatchers.IO) {
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(context, uri)
+                val bitmap =
+                    retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST)
+                        ?: return@launch
+                val width = bitmap.width
+                val height = bitmap.height
+                val pixels = IntArray(width * height)
+                bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+                bitmap.recycle()
+                lastPresentationTimeUs = timeUs
+                mutableStatus.value = SourceStatus(PlaybackState.ENDED)
+                output.emit(
+                    VideoFrame(pixels, width, height, timeUs, 0, SystemClock.elapsedRealtimeNanos(), FrameGeometry(width, height), timeUs),
+                )
+            } finally {
+                retriever.release()
+            }
+        }
+    }
 
     @Synchronized
     override fun start() {
         if (job?.isActive == true && mutableStatus.value.state == PlaybackState.PLAYING) return
+        val resume = mutableStatus.value.state == PlaybackState.STOPPED && lastPresentationTimeUs > 0L
         job?.cancel()
+        if (!resume) lastPresentationTimeUs = 0L
         val session = ++generation
         mutableStatus.value = SourceStatus(PlaybackState.PLAYING)
         job =
             scope.launch(Dispatchers.IO) {
                 decoderLock.withLock {
                     try {
-                        decode()
+                        decode(resume)
                         publish(session, SourceStatus(PlaybackState.ENDED))
                     } catch (cancelled: CancellationException) {
                         throw cancelled
@@ -88,7 +130,7 @@ class VideoFileSource(
         if (session == generation) mutableStatus.value = status
     }
 
-    private suspend fun decode() {
+    private suspend fun decode(resume: Boolean) {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         try {
@@ -98,7 +140,11 @@ class VideoFileSource(
                     extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true
                 } ?: error("No video track")
             extractor.selectTrack(track)
+            if (resume) extractor.seekTo(lastPresentationTimeUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
             val format = extractor.getTrackFormat(track)
+            if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+                frameDurationUs = 1_000_000L / format.getInteger(MediaFormat.KEY_FRAME_RATE).coerceAtLeast(1)
+            }
             require(format.getInteger(MediaFormat.KEY_WIDTH) in 1..1920)
             require(format.getInteger(MediaFormat.KEY_HEIGHT) in 1..1920)
             // HDR is deliberately excluded until color conversion is implemented.
@@ -164,6 +210,7 @@ class VideoFileSource(
                                     it.toFrame(info.presentationTimeUs, rotation).copy(sequenceNumber = sequence)
                                 }
                             output.emit(frame)
+                            lastPresentationTimeUs = info.presentationTimeUs
                             lastProgressNanos = SystemClock.elapsedRealtimeNanos()
                         }
                     } finally {

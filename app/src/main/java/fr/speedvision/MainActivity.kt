@@ -51,9 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import fr.speedvision.domain.CalibrationMode
 import fr.speedvision.domain.PlaybackState
 import fr.speedvision.domain.SpeedEstimate
 import fr.speedvision.domain.TrackStatus
+import fr.speedvision.domain.mode
 import fr.speedvision.meta.MetaSupport
 import fr.speedvision.presentation.CalibrationWorkbench
 import fr.speedvision.presentation.PreviewState
@@ -79,6 +81,7 @@ class MainActivity : ComponentActivity() {
             var metaOpen by remember { mutableStateOf(false) }
             var voiceOpen by remember { mutableStateOf(false) }
             var speedOpen by remember { mutableStateOf(false) }
+            var fullscreen by remember { mutableStateOf(false) }
             val picker =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                     if (uri != null) model.select(uri)
@@ -94,6 +97,10 @@ class MainActivity : ComponentActivity() {
                     model::start,
                     model::stop,
                     model::debug,
+                    nextFrame = model::nextFrame,
+                    previousFrame = model::previousFrame,
+                    fullscreen = fullscreen,
+                    toggleFullscreen = { fullscreen = !fullscreen },
                     camera = {
                         model.stop()
                         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -132,7 +139,14 @@ class MainActivity : ComponentActivity() {
                 val image = state.image
                 val binding = state.calibrationBinding
                 if (calibrationOpen && image != null && binding != null) {
-                    CalibrationWorkbench(image, binding, state.ptsUs, { calibrationOpen = false }, model::applyCalibration)
+                    CalibrationWorkbench(
+                        image,
+                        binding,
+                        state.ptsUs,
+                        { calibrationOpen = false },
+                        model::applyCalibration,
+                        state.liveObservations,
+                    )
                 }
             }
         }
@@ -156,6 +170,10 @@ fun PreviewScreen(
     start: () -> Unit,
     stop: () -> Unit,
     debug: (Boolean) -> Unit,
+    nextFrame: () -> Unit = {},
+    previousFrame: () -> Unit = {},
+    fullscreen: Boolean = false,
+    toggleFullscreen: () -> Unit = {},
     camera: () -> Unit = {},
     cameraFixed: (Boolean) -> Unit = {},
     detection: (Boolean) -> Unit = {},
@@ -164,6 +182,10 @@ fun PreviewScreen(
     voice: () -> Unit = {},
     meta: () -> Unit = {},
 ) {
+    if (fullscreen) {
+        FullscreenDetectionView(state, toggleFullscreen)
+        return
+    }
     Scaffold { insets ->
         Column(
             Modifier
@@ -241,8 +263,24 @@ fun PreviewScreen(
             OutlinedButton(onClick = select, modifier = Modifier.fillMaxWidth()) { Text("Choisir une vidéo") }
             OutlinedButton(onClick = camera, modifier = Modifier.fillMaxWidth()) { Text("Caméra du téléphone") }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = start, enabled = state.selected && state.state != PlaybackState.PLAYING) { Text("START · Rejouer") }
+                Button(onClick = start, enabled = state.selected && state.state != PlaybackState.PLAYING) { Text("Continuer la lecture") }
                 OutlinedButton(onClick = stop, enabled = state.state == PlaybackState.PLAYING) { Text("STOP") }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = previousFrame,
+                    enabled = state.selected && !state.camera && state.state != PlaybackState.PLAYING,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Image précédente")
+                }
+                OutlinedButton(
+                    onClick = nextFrame,
+                    enabled = state.selected && !state.camera && state.state != PlaybackState.PLAYING,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Image suivante")
+                }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Détection véhicules / plaques")
@@ -266,12 +304,16 @@ fun PreviewScreen(
             OutlinedButton(onClick = calibration, enabled = state.image != null && state.calibrationBinding != null) {
                 Text("Calibration / distance sur image arrêtée")
             }
+            OutlinedButton(onClick = toggleFullscreen, enabled = state.image != null, modifier = Modifier.fillMaxWidth()) {
+                Text("Affichage plein écran · détection vitesse")
+            }
             if (BuildConfig.META_ENABLED) OutlinedButton(onClick = meta) { Text("Lunettes Meta") }
             OutlinedButton(onClick = speed) { Text("Laboratoire de vitesse / CSV") }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (val live = state.liveSpeed) {
                         is SpeedEstimate.Accepted -> {
+                            Text("Mode : ${state.cameraCalibration?.mode?.label() ?: "INACTIF"}")
                             Text(
                                 String.format(Locale.FRANCE, "Vitesse relative : %+.1f km/h", live.closingKmh),
                                 style = MaterialTheme.typography.titleLarge,
@@ -286,6 +328,7 @@ fun PreviewScreen(
                             )
                         }
                         is SpeedEstimate.Rejected -> {
+                            Text("Mode : ${state.cameraCalibration?.mode?.label() ?: "INACTIF"}")
                             Text("Vitesse relative : —", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 "Distance : ${state.liveDepthMeters?.let {
@@ -299,10 +342,8 @@ fun PreviewScreen(
                         }
                     }
                     Text(
-                        if (state.cameraCalibration ==
-                            null
-                        ) {
-                            "Appliquez une calibration pour activer la mesure live."
+                        if (state.cameraCalibration?.mode == CalibrationMode.APPROXIMATE) {
+                            "Profil approximatif actif. Effectuez une calibration pour améliorer la précision."
                         } else {
                             "La vitesse live exige une caméra fixe déclarée et une piste stable."
                         },
@@ -386,6 +427,41 @@ fun PreviewScreen(
     }
 }
 
+@Composable
+private fun FullscreenDetectionView(
+    state: PreviewState,
+    exit: () -> Unit,
+) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        state.image?.let { image ->
+            Image(
+                image.asImageBitmap(),
+                "Image de détection en plein écran",
+                Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        }
+        Card(Modifier.align(Alignment.TopStart).padding(16.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text("Mode : ${state.cameraCalibration?.mode?.label() ?: "INACTIF"}")
+                when (val live = state.liveSpeed) {
+                    is SpeedEstimate.Accepted -> {
+                        Text(String.format(Locale.FRANCE, "%.1f km/h", live.closingKmh), style = MaterialTheme.typography.headlineMedium)
+                        Text(String.format(Locale.FRANCE, "Distance %.2f m · qualité %.2f", live.depthAtReferenceMeters, live.qualityScore))
+                    }
+                    is SpeedEstimate.Rejected -> {
+                        Text("Vitesse : —", style = MaterialTheme.typography.headlineMedium)
+                        Text("Mesures : ${live.sampleCount} · ${live.reason}")
+                    }
+                }
+            }
+        }
+        OutlinedButton(onClick = exit, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+            Text("Quitter")
+        }
+    }
+}
+
 private fun PlaybackState.label(): String =
     when (this) {
         PlaybackState.READY -> "PRÊT"
@@ -393,4 +469,10 @@ private fun PlaybackState.label(): String =
         PlaybackState.STOPPED -> "ARRÊTÉ"
         PlaybackState.ENDED -> "FIN DE VIDÉO"
         PlaybackState.ERROR -> "ERREUR"
+    }
+
+private fun CalibrationMode.label(): String =
+    when (this) {
+        CalibrationMode.APPROXIMATE -> "APPROXIMATIF"
+        CalibrationMode.CALIBRATED -> "CALIBRÉ"
     }

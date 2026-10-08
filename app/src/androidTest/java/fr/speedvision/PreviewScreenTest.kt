@@ -17,7 +17,7 @@ class PreviewScreenTest {
 
     @Test fun noMeasurementAndNoStartBeforeSelection() {
         compose.setContent { MaterialTheme { PreviewScreen(PreviewState(), {}, {}, {}, {}) } }
-        compose.onNodeWithText("START · Rejouer").assertIsNotEnabled()
+        compose.onNodeWithText("Continuer la lecture").assertIsNotEnabled()
         compose.onNodeWithText("Vitesse relative : —").assertExists()
     }
 
