@@ -2,6 +2,10 @@
 
 Prototype Android expérimental d'estimation de **vitesse relative axiale** à partir d'une plaque connue ou, en secours, de la largeur moyenne d'un véhicule. Le laboratoire calcule une vitesse relative sur séries de profondeur horodatées. L'aperçu peut maintenant afficher une estimation live lorsque calibration, piste, caméra fixe et fenêtre temporelle sont valides. Le résultat reste expérimental et n'est pas une vitesse routière certifiée.
 
+![Aperçu de SpeedVision détectant un véhicule et une plaque sur une vidéo](docs/images/speedvision-detection.jpg)
+
+*Détection locale d’un véhicule (cadre vert), d’une plaque candidate (cadre jaune) et suivi expérimental sur un Samsung Z Flip7.*
+
 ## Utiliser
 
 Android 9/API 28 minimum. Choisir une vidéo locale MP4/H.264 SDR (≤ 1920 × 1920) ou la caméra arrière du téléphone, puis START. L'autorisation caméra n'est demandée qu'au choix de cette source. STOP arrête; START rejoue le fichier ou relance la caméra. Le passage en arrière-plan arrête le flux. Après recréation de l'écran, choisir à nouveau la caméra.
